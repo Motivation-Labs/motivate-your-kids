@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Motivate Your Kids ⭐
+
+A warm, family-friendly web app that helps parents motivate young kids (ages 4–8) by rewarding positive actions with points and badges.
+
+Parents define custom actions, log completions, and approve reward redemptions. Kids see their star balance grow and redeem points for rewards they care about.
+
+---
+
+## Features (v1)
+
+- **Family setup wizard** — name your family, add kids, pick starter actions
+- **Actions catalog** — create custom actions with point values (1–10 ⭐) across categories like Chores, Academics, Behavior, Health, and Creativity
+- **Points system** — parents log completions via FAB, kid profile, or dashboard; kids earn stars
+- **Badges** — parents create and award emoji badges as honorary milestones
+- **Reward redemption** — kids browse rewards and submit requests; parents approve or deny
+- **Kid dashboard** — big bold star count, badge wall, and reward catalog (unaffordable items greyed out)
+- **Parent dashboard** — per-kid summary cards, pending approval alerts, activity feed
+- **PWA-ready** — mobile-first layout, installable on any device
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 14 (App Router) + TypeScript |
+| Styling | Tailwind CSS + shadcn/ui |
+| State | React Context + localStorage |
+| Font | Nunito (rounded, friendly) |
+| Deployment | Vercel |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). On first launch you'll be guided through the family setup wizard.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test       # run the test suite (64 tests)
+npm run build  # production build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Iteration Plan
 
-## Learn More
+| Version | Focus |
+|---------|-------|
+| **v1** *(current)* | Web PWA · localStorage · trust-based role switching · full reward loop |
+| **v2** | Supabase backend · multi-device sync · multi-parent · recurring actions · push notifications · data export |
+| **v3** | Native iOS + Android · AI-suggested actions · streaks & multipliers |
 
-To learn more about Next.js, take a look at the following resources:
+See [`prd.md`](./prd.md) for the full product requirements, data model, and design decisions.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/                  Next.js App Router pages
+  setup/              Onboarding wizard
+  parent/             Parent-facing pages (dashboard, actions, rewards, etc.)
+  kids/[id]/          Kid-facing pages (dashboard, badges, rewards)
+components/           Shared UI components (ParentNav, KidNav, LogActionFab, etc.)
+context/              FamilyContext — global state + reducer
+lib/                  Helpers, localStorage utilities, seed data, ID generator
+types/                TypeScript domain types
+__tests__/            Jest test suite
+```
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
