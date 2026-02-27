@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useFamily } from '@/context/FamilyContext'
 import type { Action } from '@/types'
 
+const POINT_PRESETS = [1, 3, 5, 10, 25, 50, 100]
+
 const EMPTY: Omit<Action, 'id' | 'familyId'> = {
   name: '',
   description: '',
@@ -134,14 +136,36 @@ export default function ActionsPage() {
                 <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
               ))}
             </select>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-amber-700">Points: {draft.pointsValue} ⭐</label>
-              <input
-                type="range" min={1} max={10}
-                value={draft.pointsValue}
-                onChange={e => setDraft(d => ({ ...d, pointsValue: Number(e.target.value) }))}
-                className="accent-amber-500"
-              />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-amber-700">Stars: {draft.pointsValue} ⭐</label>
+              <div className="flex gap-2 flex-wrap">
+                {POINT_PRESETS.map(v => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setDraft(d => ({ ...d, pointsValue: v }))}
+                    className={`px-3 py-1.5 rounded-xl text-sm font-bold border-2 transition-colors ${
+                      draft.pointsValue === v
+                        ? 'border-amber-500 bg-amber-500 text-white'
+                        : 'border-amber-200 text-amber-600 hover:border-amber-400'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-amber-500">Custom:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={draft.pointsValue}
+                  onChange={e => setDraft(d => ({ ...d, pointsValue: Math.max(1, Number(e.target.value)) }))}
+                  className="w-24 rounded-xl border-2 border-amber-200 px-3 py-1.5 text-amber-900 outline-none focus:border-amber-400 text-center font-bold"
+                />
+                <span className="text-amber-500 text-sm">⭐</span>
+              </div>
             </div>
             <button
               onClick={handleSave}
