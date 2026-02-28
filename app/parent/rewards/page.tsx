@@ -66,6 +66,7 @@ export default function RewardsPage() {
 
   function handleRedeem(kidId: string) {
     if (!redeemFor) return
+    if (kidBalances[kidId] < redeemFor.pointsCost) return
     redeemReward(kidId, redeemFor.id)
     const kid = store.kids.find(k => k.id === kidId)
     setFlash(`🎁 Redeemed "${redeemFor.name}" for ${kid?.name}!`)

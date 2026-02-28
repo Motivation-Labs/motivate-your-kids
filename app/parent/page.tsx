@@ -11,7 +11,7 @@ function timeLabel(ts: string): string {
   if (diffMins < 1) return 'just now'
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffMins < 1440) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 function groupByDate(txs: Transaction[]): { label: string; txs: Transaction[] }[] {
