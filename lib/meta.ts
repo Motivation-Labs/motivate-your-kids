@@ -2,14 +2,18 @@
 // family resets and can be used for version-gated onboarding.
 const META_KEY = 'motivate_your_kids_meta'
 
+export type Locale = 'en' | 'zh'
+
 interface AppMeta {
   lastSeenVersion: string
   guideDismissed: boolean
+  language: Locale
 }
 
 const DEFAULT_META: AppMeta = {
   lastSeenVersion: '',
   guideDismissed: false,
+  language: 'en',
 }
 
 export function loadMeta(): AppMeta {

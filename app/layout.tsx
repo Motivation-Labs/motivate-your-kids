@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Nunito } from 'next/font/google'
 import './globals.css'
 import { FamilyProvider } from '@/context/FamilyContext'
+import { LocaleProvider } from '@/context/LocaleContext'
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration'
 
 const nunito = Nunito({
@@ -36,7 +37,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={nunito.variable}>
       <body className="antialiased bg-amber-50 min-h-screen">
-        <FamilyProvider>{children}</FamilyProvider>
+        <LocaleProvider>
+          <FamilyProvider>{children}</FamilyProvider>
+        </LocaleProvider>
         <ServiceWorkerRegistration />
       </body>
     </html>

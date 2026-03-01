@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFamily } from '@/context/FamilyContext'
+import { useLocale } from '@/context/LocaleContext'
 import { clearStore } from '@/lib/store'
 import type { Category } from '@/types'
 
@@ -14,6 +15,7 @@ export default function SettingsPage() {
     addCategory,
     removeCategory,
   } = useFamily()
+  const { locale, setLocale, t } = useLocale()
 
   const [editingName, setEditingName] = useState(false)
   const [familyNameDraft, setFamilyNameDraft] = useState('')
@@ -104,6 +106,29 @@ export default function SettingsPage() {
             </button>
           </div>
         )}
+      </section>
+
+      {/* Language */}
+      <section className="bg-white rounded-2xl p-5 shadow-sm mb-5">
+        <h2 className="text-sm font-semibold text-amber-500 uppercase tracking-wide mb-3">{t('settings.language')}</h2>
+        <div className="flex rounded-xl overflow-hidden border-2 border-amber-100">
+          <button
+            onClick={() => setLocale('en')}
+            className={`flex-1 py-2.5 text-sm font-bold transition-colors ${
+              locale === 'en' ? 'bg-amber-500 text-white' : 'text-amber-500 hover:bg-amber-50'
+            }`}
+          >
+            {t('settings.lang.en')}
+          </button>
+          <button
+            onClick={() => setLocale('zh')}
+            className={`flex-1 py-2.5 text-sm font-bold transition-colors ${
+              locale === 'zh' ? 'bg-amber-500 text-white' : 'text-amber-500 hover:bg-amber-50'
+            }`}
+          >
+            {t('settings.lang.zh')}
+          </button>
+        </div>
       </section>
 
       {/* Manage Categories */}

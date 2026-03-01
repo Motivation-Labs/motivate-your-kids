@@ -2,16 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLocale } from '@/context/LocaleContext'
 
 const tabs = [
-  { href: '/parent', label: 'Home', icon: '🏠', exact: true },
-  { href: '/parent/actions', label: 'Actions', icon: '✅' },
-  { href: '/parent/rewards', label: 'Rewards', icon: '🎁' },
-  { href: '/parent/more', label: 'More', icon: '☰' },
+  { href: '/parent', key: 'nav.home', icon: '🏠', exact: true },
+  { href: '/parent/actions', key: 'nav.actions', icon: '✅' },
+  { href: '/parent/rewards', key: 'nav.rewards', icon: '🎁' },
+  { href: '/parent/more', key: 'nav.more', icon: '☰' },
 ]
 
 export function ParentNav() {
   const pathname = usePathname()
+  const { t } = useLocale()
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-amber-100 flex z-40">
@@ -26,7 +28,7 @@ export function ParentNav() {
             }`}
           >
             <span className="text-xl">{tab.icon}</span>
-            <span>{tab.label}</span>
+            <span>{t(tab.key)}</span>
           </Link>
         )
       })}
