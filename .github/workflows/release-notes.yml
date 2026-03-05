@@ -1,0 +1,138 @@
+name: Release Notes
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write  # required to create GitHub Releases
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for git log
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+
+          # Find the previous tag to compute the commit range
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..${TAG}"
+            COMPARE_URL="https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG}"
+          else
+            RANGE="${TAG}"
+            COMPARE_URL="https://github.com/${{ github.repository }}/commits/${TAG}"
+          fi
+
+          # ── Collect commits by conventional-commit type ────────────────────
+          BREAKING=$(git log "$RANGE" --pretty=format:"%s" \
+            | grep -E "^(feat|fix|refactor|perf)!:|BREAKING CHANGE:" \
+            | sed -E 's/^[^:]+: //' \
+            | sed 's/^/- /' || true)
+
+          FEATURES=$(git log "$RANGE" --pretty=format:"%s" \
+            | grep -E "^feat(\([^)]+\))?:" \
+            | sed -E 's/^feat(\([^)]+\))?: //' \
+            | sed 's/^/- /' || true)
+
+          FIXES=$(git log "$RANGE" --pretty=format:"%s" \
+            | grep -E "^fix(\([^)]+\))?:" \
+            | sed -E 's/^fix(\([^)]+\))?: //' \
+            | sed 's/^/- /' || true)
+
+          PERF=$(git log "$RANGE" --pretty=format:"%s" \
+            | grep -E "^perf(\([^)]+\))?:" \
+            | sed -E 's/^perf(\([^)]+\))?: //' \
+            | sed 's/^/- /' || true)
+
+          REFACTOR=$(git log "$RANGE" --pretty=format:"%s" \
+            | grep -E "^refactor(\([^)]+\))?:" \
+            | sed -E 's/^refactor(\([^)]+\))?: //' \
+            | sed 's/^/- /' || true)
+
+          CHORES=$(git log "$RANGE" --pretty=format:"%s" \
+            | grep -E "^(chore|docs|test|build|ci)(\([^)]+\))?:" \
+            | sed -E 's/^[a-z]+(\([^)]+\))?: //' \
+            | sed 's/^/- /' || true)
+
+          UNCATEGORISED=$(git log "$RANGE" --pretty=format:"%s" \
+            | grep -vE "^(feat|fix|perf|refactor|chore|docs|test|build|ci)(\([^)]+\))?:|BREAKING CHANGE:" \
+            | grep -vE "^Merge " \
+            | sed 's/^/- /' || true)
+
+          # ── Build markdown body ────────────────────────────────────────────
+          {
+            if [ -n "$BREAKING" ]; then
+              echo "### ⚠️ Breaking Changes"
+              echo "$BREAKING"
+              echo ""
+            fi
+
+            if [ -n "$FEATURES" ]; then
+              echo "### ✨ Features"
+              echo "$FEATURES"
+              echo ""
+            fi
+
+            if [ -n "$FIXES" ]; then
+              echo "### 🐛 Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+
+            if [ -n "$PERF" ]; then
+              echo "### ⚡ Performance"
+              echo "$PERF"
+              echo ""
+            fi
+
+            if [ -n "$REFACTOR" ]; then
+              echo "### ♻️ Refactors"
+              echo "$REFACTOR"
+              echo ""
+            fi
+
+            if [ -n "$CHORES" ]; then
+              echo "### 🔧 Internal"
+              echo "$CHORES"
+              echo ""
+            fi
+
+            if [ -n "$UNCATEGORISED" ]; then
+              echo "### 📝 Other"
+              echo "$UNCATEGORISED"
+              echo ""
+            fi
+
+            echo "---"
+            echo "**Full changelog:** $COMPARE_URL"
+          } > release_notes.md
+
+          echo "──── Release notes ────"
+          cat release_notes.md
+
+          # Detect if this is a pre-release (e.g. v0.x.x)
+          MAJOR=$(echo "$TAG" | sed -E 's/v([0-9]+)\..*/\1/')
+          if [ "$MAJOR" = "0" ]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "${{ steps.notes.outputs.tag }}" \
+            --title "Release ${{ steps.notes.outputs.tag }}" \
+            --notes-file release_notes.md \
+            ${{ steps.notes.outputs.prerelease == 'true' && '--prerelease' || '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
