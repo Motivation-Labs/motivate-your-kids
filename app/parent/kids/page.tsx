@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { useFamily } from '@/context/FamilyContext'
+import { AvatarDisplay } from '@/components/AvatarDisplay'
+import { AvatarPicker } from '@/components/AvatarPicker'
 import type { Kid } from '@/types'
 
-const AVATARS = ['🐻', '🐼', '🦊', '🐸', '🦁', '🐯', '🐨', '🐹', '🐰', '🦋']
 const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316']
-const EMPTY = { name: '', avatar: AVATARS[0], colorAccent: COLORS[0] }
+const EMPTY = { name: '', avatar: '🧒', colorAccent: COLORS[0] }
 
 export default function KidsPage() {
   const { store, addKid, updateKid, removeKid, getBalance } = useFamily()
@@ -62,7 +63,7 @@ export default function KidsPage() {
             className="bg-white rounded-2xl p-4 shadow-card border-l-4 flex items-center gap-4"
             style={{ borderColor: kid.colorAccent }}
           >
-            <span className="text-4xl">{kid.avatar}</span>
+            <AvatarDisplay avatar={kid.avatar} size={48} />
             <div className="flex-1">
               <p className="font-bold text-ink-primary">{kid.name}</p>
               <p className="text-brand text-sm">⭐ {getBalance(kid.id)} stars</p>
@@ -84,9 +85,12 @@ export default function KidsPage() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setShowForm(false)}>
-          <div className="bg-white w-full rounded-t-3xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+          <div
+            className="bg-white w-full rounded-t-3xl p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <h2 className="text-lg font-bold text-ink-primary">{editing ? 'Edit kid' : 'Add a kid'}</h2>
-            <div className="text-center text-5xl">{draft.avatar}</div>
+
             <input
               autoFocus
               placeholder="Kid's name"
@@ -94,20 +98,16 @@ export default function KidsPage() {
               onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
               className="rounded-xl border-2 border-line px-3 py-2 text-ink-primary outline-none focus:border-brand"
             />
+
             <div>
               <p className="text-sm font-medium text-ink-secondary mb-2">Avatar</p>
-              <div className="flex flex-wrap gap-2">
-                {AVATARS.map(a => (
-                  <button
-                    key={a}
-                    onClick={() => setDraft(d => ({ ...d, avatar: a }))}
-                    className={`text-2xl p-2 rounded-xl ${draft.avatar === a ? 'bg-brand-light scale-110' : 'bg-page hover:bg-brand-light'}`}
-                  >
-                    {a}
-                  </button>
-                ))}
-              </div>
+              <AvatarPicker
+                value={draft.avatar}
+                onChange={avatar => setDraft(d => ({ ...d, avatar }))}
+                uploadPrefix="kids"
+              />
             </div>
+
             <div>
               <p className="text-sm font-medium text-ink-secondary mb-2">Color</p>
               <div className="flex gap-2 flex-wrap">
@@ -121,6 +121,7 @@ export default function KidsPage() {
                 ))}
               </div>
             </div>
+
             <button
               onClick={handleSave}
               disabled={!draft.name.trim()}

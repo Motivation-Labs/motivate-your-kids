@@ -628,3 +628,181 @@ Original feedback in Chinese; translated and interpreted below.
 |----|---------|----------|--------|--------|
 | FB-8 | Direct number input | High | S | v1.2 |
 | FB-9 | Home page per-kid layout | High | M | v1.2 |
+
+---
+
+### Round 5 — Backend & Invite System (Mar 2026)
+
+#### Infrastructure Upgrade
+
+Migrate from localStorage-only to a full backend stack:
+
+| Layer | Choice |
+|-------|--------|
+| Database | Supabase (PostgreSQL + RLS) |
+| Auth | Supabase Auth (Google OAuth + email/password) |
+| Email | Resend |
+| Deployment | Vercel |
+
+#### FB-10 · Invite Family Member *(High priority)*
+
+**Requirements:**
+- First parent (family owner) can create invite links from Settings > Family Members.
+- Invite link contains a unique token and expires after **24 hours**.
+- Invite can optionally include an email address — if provided, an invite email is sent via Resend.
+- Invitee opens link → signs up / logs in → configures their **role** (relationship to kids).
+- Available relationships: Mother, Father, Grandma, Grandpa, Aunt, Uncle, Other.
+- Invited members get full parent-level access (same CRUD as owner) once accepted.
+- Settings page shows current family members and pending invites.
+
+**Data model additions:**
+```
+FamilyMember  { id, familyId, userId, email, displayName, relationship, isOwner, joinedAt }
+Invite        { id, familyId, invitedBy, email?, token, relationship, status, createdAt, expiresAt, acceptedAt? }
+```
+
+**New routes:**
+- `/login` — Email/password login
+- `/signup` — Account creation
+- `/invite?token=xxx` — Accept invite flow (auth → role config → join)
+- `/api/invite` — Create invite (POST) / validate invite (GET)
+- `/api/invite/accept` — Accept invite (POST)
+- `/auth/callback` — Supabase auth code exchange
+
+**Auth methods:**
+- **Google OAuth** — primary, lowest-friction sign-in. Uses `supabase.auth.signInWithOAuth({ provider: 'google' })`. Supabase auto-creates the account on first Google login.
+- **Email/password** — fallback for users without Google accounts. Requires email confirmation via Supabase Auth.
+- Both methods share the same `/auth/callback` route for code exchange.
+
+**Prerequisites (Supabase dashboard):**
+- Enable Google provider in Auth > Providers > Google
+- Add Google OAuth client ID + secret from Google Cloud Console
+- Add production URL to Auth > URL Configuration > Redirect URLs
+
+**RLS policies:** All data tables scoped to family membership via `user_family_ids()` helper function.
+
+---
+
+### Round 6 — Focus Group Distribution Readiness (Mar 2026)
+
+Preparing the app for external distribution to the parent focus group. Covers auth UX improvements, family member management, richer profile avatars, and sensory feedback.
+
+---
+
+#### FB-11 · Auth Enhancement: OTP + Magic Link  *(High priority)*
+
+> Lower the sign-up/sign-in friction — especially for invited family members who may not want to create a password.
+
+**Requirements:**
+
+**a) Sign-in with email OTP (login page):**
+- Login page adds a tab/toggle: "Password" | "Email Code".
+- Email code mode: user enters email → taps "Send Code" → receives 6-digit OTP via email → enters code → authenticated.
+- Uses `supabase.auth.signInWithOtp({ email })` and `supabase.auth.verifyOtp({ email, token, type: 'email' })`.
+- Falls back gracefully if Supabase OTP is not enabled (shows error message).
+
+**b) Sign-up with magic link (signup page):**
+- Signup page adds a "Sign up with magic link" option below the password form.
+- User enters name + email → taps "Send Magic Link" → receives email with login link → clicks link → account created.
+- Uses `supabase.auth.signInWithOtp({ email, options: { data: { display_name }, emailRedirectTo: '/auth/callback' } })`.
+- Success screen shows "Check your email for a magic link!" message.
+
+**c) Invite flow magic link:**
+- Invite page auth step adds magic link signup as an option alongside password-based signup.
+- Lower friction path for invited users: just enter email → get link → click → join family.
+
+---
+
+#### FB-12 · Family Member Management UI  *(High priority)*
+
+> Parents need to see who is in their family and invite new members — currently there is no UI for this in settings.
+
+**Requirements:**
+- Settings page gains a "Family Members" section (fetched from Supabase `family_members` table).
+- Shows current members: avatar + name + relationship label (e.g., "👩 Sarah — Mom").
+- Shows pending invites with expiry countdown and email.
+- "Invite Member" button opens inline form: email input + relationship picker (reuses the emoji grid from invite page).
+- Invite creation calls existing `POST /api/invite` endpoint.
+- Owner badge shown on the family owner's row.
+- Members can see other members but cannot remove them in v1 (owner-only action, deferred).
+
+---
+
+#### FB-13 · Profile Avatars: Presets + Photo Upload  *(High priority)*
+
+> Replace emoji-only avatars with richer options: preset illustrated avatars and photo uploads with crop/compression.
+
+**Requirements:**
+
+**a) Preset avatars:**
+- SVG avatar images stored in `/public/avatars/presets/` (user will supply from Figma).
+- Placeholder set of 12 default presets included for scaffolding.
+- Avatar picker shows a grid of circular preset images alongside the existing emoji grid.
+
+**b) Photo upload with crop:**
+- Camera/gallery file picker → client-side circular crop (1:1 aspect ratio, `react-easy-crop`) → client-side compression (max 200KB, WebP where supported, via `browser-image-compression`) → upload to Supabase Storage `avatars` bucket → public URL stored as avatar value.
+- Crop UI: modal overlay with pinch/zoom support, "Save" / "Cancel" buttons.
+
+**c) Avatar data model:**
+- Avatar field supports three formats (backwards compatible):
+  - Emoji: `"🧒"` (single/double char, existing)
+  - Preset: `"preset:avatar-01"` (new)
+  - URL: `"https://..."` (uploaded photo, new)
+- `AvatarDisplay` component renders any format as a circular image.
+- `AvatarPicker` component provides tabbed UI: Emoji | Presets | Upload.
+
+**d) Applies to:**
+- Kid profiles (create + edit)
+- Family member profiles (invite configure step + settings)
+
+**Dependencies:**
+- `react-easy-crop` — client-side image cropping
+- `browser-image-compression` — client-side image compression
+- Supabase Storage bucket: `avatars` (public, authenticated upload)
+
+---
+
+#### FB-14 · Animation & Sound Effects  *(Medium priority)*
+
+> Add sensory feedback to key actions — makes the app feel alive for kids and satisfying for parents.
+
+**Requirements:**
+
+**a) Sound effects (Web Audio API synthesis — zero external files):**
+- Earn stars: ascending major arpeggio chime (happy, bright)
+- Deduct stars: soft descending minor tone (firm but gentle)
+- Redeem reward: celebratory bell / cash register
+- Confirm button: subtle click
+- Sounds play alongside existing confetti on earn events.
+
+**b) Sound settings:**
+- `AppMeta` gains `soundEnabled: boolean` (default `true`).
+- Toggle in Settings page: "🔊 Sound Effects" on/off.
+- Respects device silent mode where detectable.
+
+**c) Enhanced animations:**
+- Star count bounce on value change (CSS scale keyframe).
+- Card entrance staggered slide-up animation on page load.
+- Button press scale feedback (`active:scale-95` already used; extend to more buttons).
+- Toast slide-in from top / slide-out transitions.
+- Bottom sheet slide-up entrance with spring easing.
+
+---
+
+#### Priority Matrix (Round 6)
+
+| ID | Feature | Priority | Effort | Target |
+|----|---------|----------|--------|--------|
+| FB-11 | Auth: OTP + magic link | High | S | v0.3.0 |
+| FB-12 | Family member management UI | High | S | v0.3.0 |
+| FB-13 | Profile avatars + photo upload | High | M | v0.3.0 |
+| FB-14 | Animation & sound effects | Medium | M | v0.3.0 |
+
+#### Implementation Order
+
+| # | Feature | Scope |
+|---|---------|-------|
+| 1 | FB-11 | Login + signup + invite pages |
+| 2 | FB-12 | Settings page + Supabase queries |
+| 3 | FB-13 | New components + Supabase Storage + avatar migration |
+| 4 | FB-14 | lib/sounds.ts + CSS animations + settings toggle |

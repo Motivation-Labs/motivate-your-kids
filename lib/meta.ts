@@ -8,12 +8,14 @@ interface AppMeta {
   lastSeenVersion: string
   guideDismissed: boolean
   language: Locale
+  soundEnabled: boolean
 }
 
 const DEFAULT_META: AppMeta = {
   lastSeenVersion: '',
   guideDismissed: false,
   language: 'en',
+  soundEnabled: true,
 }
 
 export function loadMeta(): AppMeta {

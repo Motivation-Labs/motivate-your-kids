@@ -77,7 +77,38 @@ const config: Config = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
-  		}
+  		},
+  		keyframes: {
+  			'slide-down': {
+  				'0%': { opacity: '0', transform: 'translate(-50%, -20px)' },
+  				'100%': { opacity: '1', transform: 'translate(-50%, 0)' },
+  			},
+  			'slide-up': {
+  				'0%': { opacity: '0', transform: 'translateY(20px)' },
+  				'100%': { opacity: '1', transform: 'translateY(0)' },
+  			},
+  			'bounce-in': {
+  				'0%': { opacity: '0', transform: 'scale(0.3)' },
+  				'50%': { transform: 'scale(1.05)' },
+  				'70%': { transform: 'scale(0.95)' },
+  				'100%': { opacity: '1', transform: 'scale(1)' },
+  			},
+  			'star-pulse': {
+  				'0%, 100%': { transform: 'scale(1)' },
+  				'50%': { transform: 'scale(1.15)' },
+  			},
+  			'sheet-up': {
+  				'0%': { transform: 'translateY(100%)' },
+  				'100%': { transform: 'translateY(0)' },
+  			},
+  		},
+  		animation: {
+  			'slide-down': 'slide-down 0.3s ease-out',
+  			'slide-up': 'slide-up 0.3s ease-out',
+  			'bounce-in': 'bounce-in 0.4s ease-out',
+  			'star-pulse': 'star-pulse 0.3s ease-in-out',
+  			'sheet-up': 'sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+  		},
   	}
   },
   plugins: [require("tailwindcss-animate")],

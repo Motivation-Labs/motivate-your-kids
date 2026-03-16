@@ -9,6 +9,8 @@ import { loadMeta, saveMeta } from '@/lib/meta'
 import { APP_VERSION } from '@/lib/version'
 import { fireStarConfetti } from '@/lib/confetti'
 import { randomEarnPhrase, randomDeductPhrase } from '@/lib/messages'
+import { playEarnSound, playDeductSound, playRedeemSound } from '@/lib/sounds'
+import { AvatarDisplay } from '@/components/AvatarDisplay'
 import type { Transaction } from '@/types'
 
 type QuickType = 'earn' | 'deduct' | 'redeem'
@@ -226,8 +228,10 @@ export default function ParentDashboard() {
     if (quickType === 'earn') {
       showFlash(`+${quickAmount}⭐ for ${kidName}! ${randomEarnPhrase()}`)
       fireStarConfetti()
+      playEarnSound()
     } else {
       showFlash(`−${quickAmount}⭐ for ${kidName}. ${randomDeductPhrase()}`)
+      playDeductSound()
     }
     setQuickType(null)
   }
@@ -246,6 +250,7 @@ export default function ParentDashboard() {
     redeemReward(quickKidId, redeemRewardId, redeemCost)
     const kidName = store.kids.find(k => k.id === quickKidId)?.name ?? ''
     showFlash(`🎁 ${reward.name} → ${kidName}!`)
+    playRedeemSound()
     setQuickType(null)
   }
 
@@ -366,11 +371,11 @@ export default function ParentDashboard() {
               return (
                 <div
                   key={kid.id}
-                  className="bg-white rounded-2xl shadow-card px-4 py-4 border-t-2"
+                  className="bg-white rounded-2xl shadow-card px-4 py-4 border-t-2 animate-slide-up"
                   style={{ borderColor: kid.colorAccent }}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-3xl leading-none">{kid.avatar}</span>
+                    <AvatarDisplay avatar={kid.avatar} size={36} />
                     <div className="flex-1">
                       <p className="font-bold text-ink-primary leading-tight">{kid.name}</p>
                       <p className="text-sm font-bold" style={{ color: kid.colorAccent }}>{bal} ⭐</p>
@@ -428,7 +433,7 @@ export default function ParentDashboard() {
                           key={tx.id}
                           className={`flex items-center gap-3 px-3 py-2.5 ${i < group.txs.length - 1 ? 'border-b border-line-subtle' : ''}`}
                         >
-                          <span className="text-base flex-shrink-0 w-6 text-center">{kid?.avatar ?? '👦'}</span>
+                          <AvatarDisplay avatar={kid?.avatar ?? '👦'} size={24} />
                           <span className="text-base flex-shrink-0">{icon}</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-ink-primary truncate">{getTxLabel(tx)}</p>
@@ -464,7 +469,7 @@ export default function ParentDashboard() {
           onClick={() => setQuickType(null)}
         >
           <div
-            className="bg-white w-full rounded-t-3xl flex flex-col max-w-lg mx-auto"
+            className="bg-white w-full rounded-t-3xl flex flex-col max-w-lg mx-auto animate-sheet-up"
             style={{ maxHeight: '88vh' }}
             onClick={e => e.stopPropagation()}
           >
