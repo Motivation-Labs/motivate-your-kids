@@ -5,6 +5,7 @@ import { useFamily } from '@/context/FamilyContext'
 
 const ITEMS = [
   { label: '👶 Manage Kids', href: '/parent/kids' },
+  { label: '👨‍👩‍👧 Family Members', href: '/parent/family' },
   { label: '🏅 Manage Badges', href: '/parent/badges' },
   { label: '📋 Activity History', href: '/parent/history' },
   { label: '⚙️ Family Settings', href: '/parent/settings' },
@@ -17,7 +18,7 @@ export default function MorePage() {
   return (
     <main className="p-5 max-w-lg mx-auto pb-6">
       <header className="mb-6 pt-4">
-        <h1 className="text-2xl font-bold text-ink-primary">More</h1>
+        <h1 className="text-2xl font-bold text-ink-primary">Settings</h1>
         {store.family && <p className="text-ink-secondary text-sm">{store.family.name}</p>}
       </header>
 

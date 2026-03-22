@@ -19,6 +19,9 @@ import type {
   Reward,
   Transaction,
   KidBadge,
+  FamilyMember,
+  FamilyInvite,
+  FamilyRole,
 } from '@/types'
 import { loadStore, saveStore, DEFAULT_STORE } from '@/lib/store'
 import { generateId } from '@/lib/ids'
@@ -57,6 +60,11 @@ type StoreAction =
   | { type: 'APPROVE_REDEMPTION'; payload: string }
   | { type: 'DENY_REDEMPTION'; payload: string }
   | { type: 'AWARD_BADGE'; payload: KidBadge }
+  | { type: 'ADD_FAMILY_MEMBER'; payload: FamilyMember }
+  | { type: 'UPDATE_FAMILY_MEMBER'; payload: FamilyMember }
+  | { type: 'REMOVE_FAMILY_MEMBER'; payload: string }
+  | { type: 'ADD_FAMILY_INVITE'; payload: FamilyInvite }
+  | { type: 'REMOVE_FAMILY_INVITE'; payload: string }
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
 
@@ -173,6 +181,26 @@ function reducer(state: AppStore, action: StoreAction): AppStore {
     case 'AWARD_BADGE':
       return { ...state, kidBadges: [...state.kidBadges, action.payload] }
 
+    case 'ADD_FAMILY_MEMBER':
+      return { ...state, familyMembers: [...state.familyMembers, action.payload] }
+
+    case 'UPDATE_FAMILY_MEMBER':
+      return {
+        ...state,
+        familyMembers: state.familyMembers.map(m =>
+          m.id === action.payload.id ? action.payload : m,
+        ),
+      }
+
+    case 'REMOVE_FAMILY_MEMBER':
+      return { ...state, familyMembers: state.familyMembers.filter(m => m.id !== action.payload) }
+
+    case 'ADD_FAMILY_INVITE':
+      return { ...state, familyInvites: [...state.familyInvites, action.payload] }
+
+    case 'REMOVE_FAMILY_INVITE':
+      return { ...state, familyInvites: state.familyInvites.filter(i => i.id !== action.payload) }
+
     default:
       return state
   }
@@ -216,7 +244,7 @@ interface FamilyContextValue {
   removeCategory: (categoryId: string) => void
 
   // Transactions
-  logCompletion: (kidId: string, actionId: string, amount?: number, reason?: string) => void
+  logCompletion: (kidId: string, actionId: string, amount?: number, reason?: string, memo?: { photoUrl?: string; voiceMemoUrl?: string }) => void
   awardBonus: (kidId: string, amount: number, note: string) => void
   awardDeduction: (kidId: string, amount: number, reason?: string) => void
   redeemReward: (kidId: string, rewardId: string, costOverride?: number) => void
@@ -224,6 +252,13 @@ interface FamilyContextValue {
   approveRedemption: (transactionId: string) => void
   denyRedemption: (transactionId: string) => void
   removeTransaction: (id: string) => void
+
+  // Family members
+  addFamilyMember: (data: Omit<FamilyMember, 'id' | 'familyId' | 'createdAt'>) => void
+  updateFamilyMember: (member: FamilyMember) => void
+  removeFamilyMember: (memberId: string) => void
+  createFamilyInvite: (role: FamilyRole) => FamilyInvite
+  removeFamilyInvite: (inviteId: string) => void
 
   // Kid badges
   awardBadge: (kidId: string, badgeId: string) => void
@@ -394,7 +429,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
   // ── Transactions ──────────────────────────────────────────────────────────
 
   const logCompletion = useCallback(
-    (kidId: string, actionId: string, amount?: number, reason?: string) => {
+    (kidId: string, actionId: string, amount?: number, reason?: string, memo?: { photoUrl?: string; voiceMemoUrl?: string }) => {
       const action = store.actions.find(a => a.id === actionId)
       if (!action) return
       const finalAmount = amount ?? action.pointsValue
@@ -407,6 +442,8 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         status: 'approved',
         timestamp: new Date().toISOString(),
         reason,
+        photoUrl: memo?.photoUrl,
+        voiceMemoUrl: memo?.voiceMemoUrl,
       }
       dispatch({ type: 'ADD_TRANSACTION', payload: tx })
 
@@ -505,6 +542,49 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'DENY_REDEMPTION', payload: transactionId })
   }, [])
 
+  // ── Family members ───────────────────────────────────────────────────────
+
+  const addFamilyMember = useCallback(
+    (data: Omit<FamilyMember, 'id' | 'familyId' | 'createdAt'>) => {
+      const member: FamilyMember = {
+        ...data,
+        id: generateId(),
+        familyId: store.family!.id,
+        createdAt: new Date().toISOString(),
+      }
+      dispatch({ type: 'ADD_FAMILY_MEMBER', payload: member })
+    },
+    [store.family],
+  )
+
+  const updateFamilyMember = useCallback((member: FamilyMember) => {
+    dispatch({ type: 'UPDATE_FAMILY_MEMBER', payload: member })
+  }, [])
+
+  const removeFamilyMember = useCallback((memberId: string) => {
+    dispatch({ type: 'REMOVE_FAMILY_MEMBER', payload: memberId })
+  }, [])
+
+  const createFamilyInvite = useCallback(
+    (role: FamilyRole): FamilyInvite => {
+      const invite: FamilyInvite = {
+        id: generateId(),
+        familyId: store.family!.id,
+        token: Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10),
+        role,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      }
+      dispatch({ type: 'ADD_FAMILY_INVITE', payload: invite })
+      return invite
+    },
+    [store.family],
+  )
+
+  const removeFamilyInvite = useCallback((inviteId: string) => {
+    dispatch({ type: 'REMOVE_FAMILY_INVITE', payload: inviteId })
+  }, [])
+
   // ── Kid badges ────────────────────────────────────────────────────────────
 
   const awardBadge = useCallback((kidId: string, badgeId: string) => {
@@ -571,6 +651,11 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     approveRedemption,
     denyRedemption,
     removeTransaction,
+    addFamilyMember,
+    updateFamilyMember,
+    removeFamilyMember,
+    createFamilyInvite,
+    removeFamilyInvite,
     awardBadge,
     getBalance,
     getPendingCount,

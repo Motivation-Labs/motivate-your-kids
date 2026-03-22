@@ -5,6 +5,8 @@ import { useFamily } from '@/context/FamilyContext'
 import type { Action } from '@/types'
 import { fireStarConfetti } from '@/lib/confetti'
 import { randomEarnPhrase, randomDeductPhrase } from '@/lib/messages'
+import { PhotoCapture } from '@/components/PhotoCapture'
+import { VoiceRecorder } from '@/components/VoiceRecorder'
 
 const POINT_PRESETS = [1, 3, 5, 10, 25, 50, 100]
 
@@ -33,6 +35,8 @@ export default function ActionsPage() {
   const [logKidId, setLogKidId] = useState<string | null>(null)
   const [logAmount, setLogAmount] = useState(0)
   const [logReason, setLogReason] = useState('')
+  const [logPhoto, setLogPhoto] = useState<string | undefined>(undefined)
+  const [logVoice, setLogVoice] = useState<string | undefined>(undefined)
   const [flash, setFlash] = useState<string | null>(null)
 
   // Count completions per action
@@ -97,13 +101,16 @@ export default function ActionsPage() {
     setLogAction(action)
     setLogAmount(action.pointsValue)
     setLogReason('')
+    setLogPhoto(undefined)
+    setLogVoice(undefined)
     setLogKidId(store.kids.length === 1 ? store.kids[0].id : null)
   }
 
   function handleLogConfirm() {
     if (!logAction || !logKidId) return
     const isAdjusted = logAmount !== logAction.pointsValue
-    logCompletion(logKidId, logAction.id, logAmount, isAdjusted ? logReason || undefined : undefined)
+    const memo = (logPhoto || logVoice) ? { photoUrl: logPhoto, voiceMemoUrl: logVoice } : undefined
+    logCompletion(logKidId, logAction.id, logAmount, isAdjusted ? logReason || undefined : undefined, memo)
     const kidName = store.kids.find(k => k.id === logKidId)?.name ?? ''
     if (logAction.isDeduction) {
       setFlash(`−${logAmount}⭐ for ${kidName}. ${randomDeductPhrase()}`)
@@ -356,6 +363,13 @@ export default function ActionsPage() {
                 <span className="font-bold text-ink-primary">{store.kids[0].name}</span>
               </div>
             )}
+
+            {/* Memo — photo + voice */}
+            <div className="flex flex-col gap-2 border-t border-line-subtle pt-3">
+              <p className="text-xs font-bold text-ink-secondary uppercase tracking-wide">Memo (optional)</p>
+              <PhotoCapture value={logPhoto} onChange={setLogPhoto} />
+              <VoiceRecorder value={logVoice} onChange={setLogVoice} />
+            </div>
 
             <button
               onClick={handleLogConfirm}

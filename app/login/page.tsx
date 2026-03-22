@@ -10,10 +10,14 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') ?? '/'
   const authError = searchParams.get('error')
+  const existing = searchParams.get('existing')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [info, setInfo] = useState(
+    existing === '1' ? 'An account with this email already exists. Please sign in.' : '',
+  )
   const [error, setError] = useState(
     authError === 'auth_failed' ? 'Authentication failed. Please try again.' : '',
   )
@@ -21,6 +25,7 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setInfo('')
     setLoading(true)
 
     const supabase = createClient()
@@ -92,6 +97,12 @@ function LoginForm() {
               className="w-full rounded-xl border-2 border-line px-4 py-3 text-ink-primary outline-none focus:border-brand transition-colors text-base"
             />
           </div>
+
+          {info && (
+            <p className="text-blue-600 text-sm font-semibold bg-blue-50 rounded-xl px-4 py-3">
+              {info}
+            </p>
+          )}
 
           {error && (
             <p className="text-red-500 text-sm font-semibold bg-red-50 rounded-xl px-4 py-3">

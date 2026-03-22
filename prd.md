@@ -1172,3 +1172,67 @@ When auth is ready to ship, the migration path is:
    | `rewardId` | `reward_id` |
    | `awardedAt` | `awarded_at` |
    | `createdAt` | `created_at` |
+
+---
+
+### Round 10 — Settings, Family Members & Action Memos (Mar 2026)
+
+---
+
+#### FB-14 · Rename "More" Tab to "Settings"  *(Completed)*
+
+**Change:** Bottom nav tab renamed from "More" (☰) to "Settings" (⚙️). i18n updated for en/zh.
+
+---
+
+#### FB-15 · Family Member Management  *(Completed)*
+
+> Parents need to see, add, and manage family members with defined roles and relationships to the kids.
+
+**Requirements:**
+- New route: `/parent/family` — accessible from Settings hub.
+- Add/edit/remove family members with: name, avatar (emoji or preset), role, and optional birthday.
+- **Role constraints:** Mother and Father are single-occupancy (max one each). Grandma, Grandpa, Aunt, Uncle, Nanny, and Other can have multiples.
+- **Invite link generation:** Create invite links scoped to a role. Links expire after 24 hours. Copy-to-clipboard support.
+- Pending invites displayed with expiry countdown and delete option.
+
+**Data model additions:**
+```
+FamilyMember   { id, familyId, name, avatar, role, birthday?, createdAt }
+FamilyInvite   { id, familyId, token, role, createdAt, expiresAt }
+FamilyRole     = 'mother' | 'father' | 'grandma' | 'grandpa' | 'aunt' | 'uncle' | 'nanny' | 'other'
+```
+
+**New route:** `/parent/family`
+
+---
+
+#### FB-16 · Action Logging Memos — Photo & Voice  *(Completed)*
+
+> When logging an action, parents can attach a photo and/or a 10-second voice memo as evidence or context.
+
+**Requirements:**
+- Quick Log modal (Actions tab + Home page) gains a "Memo (optional)" section with:
+  - **Photo capture:** camera/gallery file picker → client-side resize (max 800px) + compress (WebP/JPEG) → stored as base64 data URL in localStorage.
+  - **Voice recording:** in-app microphone recording, max 10 seconds, auto-stops at limit. Stored as WebM base64 data URL. Playback/remove controls after recording.
+- Memos are stored on the `Transaction` entity (`photoUrl`, `voiceMemoUrl` fields).
+- Activity feed shows 📷 and 🎙 indicators on transactions that have attachments.
+- No external dependencies — uses native `MediaRecorder` and `Canvas` APIs.
+
+**Data model changes:**
+```
+Transaction += { photoUrl?: string, voiceMemoUrl?: string }
+```
+
+**Files changed:**
+- `types/index.ts` — added `FamilyMember`, `FamilyInvite`, `FamilyRole`, memo fields on `Transaction`, updated `AppStore`
+- `lib/store.ts` — updated `DEFAULT_STORE`
+- `context/FamilyContext.tsx` — added family member CRUD + invite methods, updated `logCompletion` signature
+- `components/ParentNav.tsx` — "More" → "Settings" with ⚙️ icon
+- `components/VoiceRecorder.tsx` — new voice recording component
+- `components/PhotoCapture.tsx` — new photo capture component
+- `app/parent/more/page.tsx` — renamed header, added Family Members menu item
+- `app/parent/family/page.tsx` — new family members management page
+- `app/parent/actions/page.tsx` — added memo UI to Quick Log modal
+- `app/parent/page.tsx` — added memo UI to home page quick action sheet, memo indicators in activity feed
+- `lib/i18n.ts` — added `nav.settings` key for en/zh

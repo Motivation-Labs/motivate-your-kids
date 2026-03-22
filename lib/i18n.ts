@@ -8,6 +8,7 @@ const en: Dict = {
   'nav.actions': 'Actions',
   'nav.rewards': 'Rewards',
   'nav.more': 'More',
+  'nav.settings': 'Settings',
 
   // Common
   'cancel': 'Cancel',
@@ -82,6 +83,7 @@ const zh: Dict = {
   'nav.actions': '动作',
   'nav.rewards': '奖励',
   'nav.more': '更多',
+  'nav.settings': '设置',
 
   // Common
   'cancel': '取消',

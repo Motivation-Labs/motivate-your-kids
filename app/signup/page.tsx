@@ -28,7 +28,7 @@ export default function SignupPage() {
 
     setLoading(true)
     const supabase = createClient()
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -42,7 +42,15 @@ export default function SignupPage() {
       return
     }
 
-    // Redirect to verify page — user will get a 6-digit code by email
+    // Supabase returns an empty identities array for repeated signups of
+    // already-confirmed accounts (user_repeated_signup). No email is sent
+    // in this case, so sending them to /verify would be a dead end.
+    if (data.user?.identities?.length === 0) {
+      router.push(`/login?existing=1`)
+      return
+    }
+
+    // Redirect to verify page — user will get a confirmation email
     router.push(`/signup/verify?email=${encodeURIComponent(email)}`)
   }
 

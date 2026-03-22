@@ -11,6 +11,8 @@ export const DEFAULT_STORE: AppStore = {
   rewards: [],
   transactions: [],
   kidBadges: [],
+  familyMembers: [],
+  familyInvites: [],
 }
 
 export function loadStore(): AppStore {

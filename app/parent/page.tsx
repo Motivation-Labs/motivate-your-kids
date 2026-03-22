@@ -12,6 +12,8 @@ import { randomEarnPhrase, randomDeductPhrase } from '@/lib/messages'
 import { playEarnSound, playDeductSound, playRedeemSound } from '@/lib/sounds'
 import { AvatarDisplay } from '@/components/AvatarDisplay'
 import { FloatingStarLabel } from '@/components/FloatingStarLabel'
+import { PhotoCapture } from '@/components/PhotoCapture'
+import { VoiceRecorder } from '@/components/VoiceRecorder'
 import type { Transaction } from '@/types'
 
 type QuickType = 'earn' | 'deduct' | 'redeem'
@@ -67,6 +69,8 @@ export default function ParentDashboard() {
   const [quickActionId, setQuickActionId] = useState<string | null>(null)
   const [quickAmount, setQuickAmount] = useState(5)
   const [quickReason, setQuickReason] = useState('')
+  const [quickPhoto, setQuickPhoto] = useState<string | undefined>(undefined)
+  const [quickVoice, setQuickVoice] = useState<string | undefined>(undefined)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createName, setCreateName] = useState('')
   const [createPoints, setCreatePoints] = useState(5)
@@ -190,6 +194,8 @@ export default function ParentDashboard() {
     setQuickKidId(kidId)
     setQuickAmount(5)
     setQuickReason('')
+    setQuickPhoto(undefined)
+    setQuickVoice(undefined)
     setQuickActionId(null)
     setShowCreateForm(false)
     setCreateName('')
@@ -224,8 +230,9 @@ export default function ParentDashboard() {
     if (!quickKidId || !quickType || quickType === 'redeem') return
     const kidName = store.kids.find(k => k.id === quickKidId)?.name ?? ''
 
+    const memo = (quickPhoto || quickVoice) ? { photoUrl: quickPhoto, voiceMemoUrl: quickVoice } : undefined
     if (quickActionId) {
-      logCompletion(quickKidId, quickActionId, quickAmount)
+      logCompletion(quickKidId, quickActionId, quickAmount, undefined, memo)
     } else if (quickType === 'earn') {
       awardBonus(quickKidId, quickAmount, quickReason.trim() || 'Bonus stars')
     } else {
@@ -479,7 +486,11 @@ export default function ParentDashboard() {
                           <AvatarDisplay avatar={kid?.avatar ?? '👦'} size={24} frame={kid?.avatarFrame} />
                           <span className="text-base flex-shrink-0">{icon}</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-ink-primary truncate">{getTxLabel(tx)}</p>
+                            <p className="text-sm font-medium text-ink-primary truncate">
+                              {getTxLabel(tx)}
+                              {tx.photoUrl && <span className="ml-1 text-xs opacity-60">📷</span>}
+                              {tx.voiceMemoUrl && <span className="ml-0.5 text-xs opacity-60">🎙</span>}
+                            </p>
                             <p className="text-[10px] text-ink-muted leading-none mt-0.5">
                               {kid?.name} · {timeLabel(tx.timestamp)}
                             </p>
@@ -711,6 +722,13 @@ export default function ParentDashboard() {
                       </div>
                     </div>
                   )}
+
+                  {/* Memo — photo + voice */}
+                  <div className="flex flex-col gap-2 border-t border-line-subtle pt-3">
+                    <p className="text-xs font-bold text-ink-secondary uppercase tracking-wide">Memo (optional)</p>
+                    <PhotoCapture value={quickPhoto} onChange={setQuickPhoto} />
+                    <VoiceRecorder value={quickVoice} onChange={setQuickVoice} />
+                  </div>
 
                   {/* Confirm */}
                   <button
