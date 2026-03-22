@@ -999,3 +999,114 @@ The Supabase auth layer (Rounds 5–6: Google OAuth, email/password, OTP, invite
 2. Verify `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel env
 3. Restore middleware auth enforcement (already in git history on `develop` branch)
 4. Test invite flow end-to-end before re-deploying
+
+---
+
+### Round 8 — Supabase Backend Setup (Mar 2026)
+
+The Supabase project **"motivate your kids"** (`vkqzosxjsiyhjltzwpaw`, region: ap-southeast-1) is fully provisioned and schema-ready. The database is the authoritative backend for v2 (multi-device sync). The app currently runs entirely on localStorage (v1); this infrastructure is standing by for the v2 migration.
+
+---
+
+#### Database Schema (live in Supabase)
+
+All tables have RLS enabled. Data is scoped to families via the `user_family_ids()` helper.
+
+| Table | Description |
+|-------|-------------|
+| `families` | One row per family — `id`, `name`, `created_at` |
+| `family_members` | Links `auth.users` to families — `user_id`, `family_id`, `relationship`, `is_owner`, `joined_at` |
+| `invites` | 24-hour invite tokens — `token` (unique), `family_id`, `email?`, `relationship`, `status`, `expires_at` |
+| `kids` | `id`, `family_id`, `name`, `avatar`, `color_accent`, `wishlist` (text[]), `avatar_frame`, `created_at` |
+| `categories` | `id`, `family_id`, `name`, `icon` |
+| `actions` | `id`, `family_id`, `name`, `description`, `category_id?`, `points_value`, `is_deduction`, `badge_id?`, `is_template`, `is_active` |
+| `badges` | `id`, `family_id`, `name`, `icon`, `description` |
+| `rewards` | `id`, `family_id`, `name`, `description`, `points_cost`, `is_active` |
+| `transactions` | `id`, `kid_id`, `type` (earn/redeem/deduct), `amount`, `action_id?`, `reward_id?`, `status`, `timestamp`, `note?`, `reason?` |
+| `kid_badges` | `(kid_id, badge_id)` composite PK + `awarded_at` |
+
+**Custom types (enums):**
+- `transaction_type`: `earn | redeem | deduct`
+- `transaction_status`: `approved | pending | denied`
+- `member_relationship`: `mother | father | grandma | grandpa | aunt | uncle | other`
+- `invite_status`: `pending | accepted | expired`
+
+**RLS policies (all tables):**
+- `families`: members can SELECT their family; owners can UPDATE; authenticated users can INSERT (create new family)
+- `family_members`: members can SELECT co-members; INSERT own membership; UPDATE own record
+- `invites`: anyone can SELECT by token (invite link); family members can INSERT and SELECT; UPDATE on accept
+- `kids / categories / actions / badges / rewards`: family members can ALL (CRUD)
+- `transactions`: scoped to kids in the user's families — family members can ALL
+- `kid_badges`: scoped to kids in the user's families — family members can ALL
+
+**Database functions:**
+- `user_family_ids()` — returns `uuid[]` of families the current user belongs to (used in all RLS policies)
+- `validate_invite(p_token text)` — validates token, checks expiry, returns invite data
+- `accept_invite(p_token text, p_user_id uuid, p_display_name text)` — SECURITY DEFINER; marks invite accepted and inserts `family_members` row
+
+---
+
+#### Storage
+
+**Bucket:** `avatars` (public read)
+
+| Policy | Role | Operation |
+|--------|------|-----------|
+| Anyone can read avatars | public | SELECT |
+| Authenticated users can upload avatars | authenticated | INSERT |
+| Authenticated users can update own avatars | authenticated | UPDATE (owner = auth.uid()) |
+| Authenticated users can delete own avatars | authenticated | DELETE (owner = auth.uid()) |
+
+---
+
+#### Auth Configuration (to complete before v2 launch)
+
+The following must be configured in the Supabase dashboard before wiring auth into the app:
+
+1. **Google OAuth:**
+   - Auth > Providers > Google → enable, paste Client ID + Secret from Google Cloud Console
+   - Google Cloud Console: add `https://vkqzosxjsiyhjltzwpaw.supabase.co/auth/v1/callback` as authorized redirect URI
+   - Supabase: Auth > URL Configuration → add `https://kids.motivationlabs.ai` to Site URL and Redirect URLs
+
+2. **Email (OTP / magic link):**
+   - Auth > Providers > Email → enable "Confirm email" and "Enable email OTP"
+   - Auth > Email Templates → customise with brand colours (optional)
+   - Set `RESEND_API_KEY` in Vercel env if using custom SMTP via Resend
+
+3. **Vercel environment variables required:**
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://vkqzosxjsiyhjltzwpaw.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from Supabase Settings > API>
+   RESEND_API_KEY=<Resend API key>
+   NEXT_PUBLIC_APP_URL=https://kids.motivationlabs.ai
+   ```
+
+---
+
+#### v2 Migration Plan (localStorage → Supabase)
+
+When auth is ready to ship, the migration path is:
+
+1. **Re-add packages:** `@supabase/ssr`, `@supabase/supabase-js`, `resend`
+2. **Restore auth pages:** `app/login`, `app/signup`, `app/auth/callback` (from git history: commit `9e19014`)
+3. **Restore API routes:** `app/api/invite/*` (from git history)
+4. **Restore middleware:** auth enforcement (from git history: commit `9600797`)
+5. **Restore settings page** family member management section
+6. **Add sync layer:** new `lib/sync.ts` — on sign-in, check if Supabase family exists for user; if not, offer to import from localStorage; if yes, load from Supabase into context
+7. **Dual-write period:** write to both localStorage and Supabase simultaneously during migration to avoid data loss
+8. **Field mapping** (localStorage camelCase → Supabase snake_case):
+   | localStorage | Supabase |
+   |---|---|
+   | `colorAccent` | `color_accent` |
+   | `pointsValue` | `points_value` |
+   | `isDeduction` | `is_deduction` |
+   | `isTemplate` | `is_template` |
+   | `isActive` | `is_active` |
+   | `avatarFrame` | `avatar_frame` |
+   | `pointsCost` | `points_cost` |
+   | `familyId` | `family_id` |
+   | `kidId` | `kid_id` |
+   | `actionId` | `action_id` |
+   | `rewardId` | `reward_id` |
+   | `awardedAt` | `awarded_at` |
+   | `createdAt` | `created_at` |
