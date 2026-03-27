@@ -823,7 +823,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       const invite: FamilyInvite = {
         id: generateId(),
         familyId: store.family!.id,
-        token: Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10),
+        token: crypto.randomUUID(),
         role,
         status: creatorIsOwner ? 'approved' : 'pending_approval',
         createdAt: new Date().toISOString(),
