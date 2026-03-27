@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFamily } from '@/context/FamilyContext'
+import { createClient } from '@/lib/supabase/client'
 import { AvatarPicker } from '@/components/AvatarPicker'
 import { AvatarDisplay } from '@/components/AvatarDisplay'
 import { SEED_REWARDS } from '@/lib/seeds'
+import { generateId } from '@/lib/ids'
 import type { FamilyRole } from '@/types'
 
 const KID_AVATARS = ['🐻', '🐼', '🦊', '🐸', '🦁', '🐯', '🐨', '🐹', '🐰', '🦋']
@@ -29,7 +31,7 @@ type Step = 'choice' | 'profile' | 'family' | 'join' | 'join-submitted' | 'kid' 
 
 export default function SetupPage() {
   const router = useRouter()
-  const { store, createFamily, addKid, addReward, createJoinRequest } = useFamily()
+  const { store, createFamily, addKid, addReward } = useFamily()
 
   const [step, setStep] = useState<Step>(store.family ? 'kid' : 'choice')
 
@@ -79,21 +81,50 @@ export default function SetupPage() {
     setStep('kid')
   }
 
-  function handleJoinFamily() {
+  const [joinLoading, setJoinLoading] = useState(false)
+
+  async function handleJoinFamily() {
     const code = joinCode.trim().toUpperCase()
     if (code.length < 5) {
       setJoinError('Please enter a valid family code.')
       return
     }
-    // In localStorage mode, we simulate: create a join request
-    // The owner of the family needs to approve it
-    // For now, we store the request locally and show a confirmation
-    createJoinRequest({
-      requesterName: ownerName.trim(),
-      requesterAvatar: ownerAvatar,
-      requestedRole: ownerRole,
-    })
-    setStep('join-submitted')
+    setJoinError('')
+    setJoinLoading(true)
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { data, error } = await supabase.rpc('submit_join_request', {
+        p_family_code: code,
+        p_request_id: generateId(),
+        p_requester_name: ownerName.trim(),
+        p_requester_avatar: ownerAvatar,
+        p_requested_role: ownerRole,
+        p_user_id: user?.id ?? null,
+      })
+
+      if (error || !data || data.error) {
+        const errType = data?.error
+        if (errType === 'not_found') {
+          setJoinError('No family found with that code. Please double-check and try again.')
+        } else if (errType === 'already_member') {
+          setJoinError('You already belong to a family.')
+        } else if (errType === 'already_requested') {
+          setJoinError('You already have a pending request for this family.')
+        } else {
+          setJoinError(error?.message ?? 'Something went wrong. Please try again.')
+        }
+        setJoinLoading(false)
+        return
+      }
+
+      setStep('join-submitted')
+    } catch {
+      setJoinError('Something went wrong. Please try again.')
+    }
+    setJoinLoading(false)
   }
 
   function handleAddKid() {
@@ -290,10 +321,10 @@ export default function SetupPage() {
 
             <button
               onClick={handleJoinFamily}
-              disabled={joinCode.trim().length < 5}
+              disabled={joinCode.trim().length < 5 || joinLoading}
               className="w-full py-4 rounded-2xl bg-brand hover:bg-brand-hover disabled:opacity-40 text-white font-bold text-lg transition-colors"
             >
-              Request to Join →
+              {joinLoading ? 'Sending request…' : 'Request to Join →'}
             </button>
             <button onClick={() => setStep('profile')} className="text-center text-brand text-sm underline">
               Back
