@@ -3,9 +3,10 @@
 import { useState, useEffect, use, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useFamily } from '@/context/FamilyContext'
+import { createClient } from '@/lib/supabase/client'
 import { AvatarPicker } from '@/components/AvatarPicker'
 import { AvatarDisplay } from '@/components/AvatarDisplay'
+import { generateId } from '@/lib/ids'
 import type { FamilyRole } from '@/types'
 
 const ROLES: { value: FamilyRole; label: string; emoji: string }[] = [
@@ -25,69 +26,64 @@ function getRoleInfo(role: string) {
 
 type InviteStatus =
   | { type: 'loading' }
-  | { type: 'valid'; familyName: string; inviteId: string }
+  | { type: 'valid'; familyName: string; inviteId: string; role: string }
   | { type: 'not_found' }
   | { type: 'expired' }
+  | { type: 'already_used' }
 
 function InvitePage({ params, searchParams }: {
-  params: Promise<{ familyCode: string; relationship: string }>
+  params: Promise<{ token: string }>
   searchParams: Promise<{ name?: string }>
 }) {
   const router = useRouter()
   const resolvedParams = use(params)
   const resolvedSearch = use(searchParams)
 
-  const familyCode = decodeURIComponent(resolvedParams.familyCode)
-  const relationship = resolvedParams.relationship as FamilyRole
+  const token = resolvedParams.token
   const prefillName = resolvedSearch.name ?? ''
-
-  const { store, hydrated, addFamilyMember, removeFamilyInvite } = useFamily()
 
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({ type: 'loading' })
   const [name, setName] = useState(prefillName)
   const [avatar, setAvatar] = useState('👩')
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [birthday, setBirthday] = useState('')
+  const [selectedRole, setSelectedRole] = useState<FamilyRole | null>(null)
   const [joined, setJoined] = useState(false)
-  const [activeInviteId, setActiveInviteId] = useState<string | null>(null)
+  const [joining, setJoining] = useState(false)
 
-  // Resolve invite once store is hydrated
+  // Validate invite via Supabase RPC (token-based, no auth needed)
   useEffect(() => {
-    if (!hydrated) return
+    const supabase = createClient()
 
-    const family = store.family
-    if (!family) {
-      setInviteStatus({ type: 'not_found' })
-      return
+    async function validate() {
+      const { data, error } = await supabase.rpc('validate_invite_by_token', {
+        p_token: token,
+      })
+
+      if (error || !data) {
+        setInviteStatus({ type: 'not_found' })
+        return
+      }
+
+      if (data.error === 'expired') {
+        setInviteStatus({ type: 'expired' })
+      } else if (data.error === 'already_used') {
+        setInviteStatus({ type: 'already_used' })
+      } else if (data.error) {
+        setInviteStatus({ type: 'not_found' })
+      } else {
+        setSelectedRole(data.role as FamilyRole)
+        setInviteStatus({
+          type: 'valid',
+          familyName: data.familyName,
+          inviteId: data.inviteId,
+          role: data.role,
+        })
+      }
     }
 
-    // Match family by displayCode or uid
-    const codeMatch =
-      family.displayCode === familyCode ||
-      family.uid === familyCode ||
-      family.displayCode?.toUpperCase() === familyCode.toUpperCase()
-
-    if (!codeMatch) {
-      setInviteStatus({ type: 'not_found' })
-      return
-    }
-
-    // Find a valid approved invite for this role
-    const now = new Date()
-    const invite = store.familyInvites.find(
-      i => i.role === relationship && i.status === 'approved' && new Date(i.expiresAt) > now
-    )
-
-    if (!invite) {
-      // Check if there's an expired one (to give better error message)
-      const expired = store.familyInvites.find(i => i.role === relationship)
-      setInviteStatus({ type: expired ? 'expired' : 'not_found' })
-      return
-    }
-
-    setActiveInviteId(invite.id)
-    setInviteStatus({ type: 'valid', familyName: family.name, inviteId: invite.id })
-  }, [hydrated, store.family, store.familyInvites, familyCode, relationship])
+    validate()
+  }, [token])
 
   // Pre-fill name from URL param once
   useEffect(() => {
@@ -95,21 +91,40 @@ function InvitePage({ params, searchParams }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillName])
 
-  function handleJoin() {
-    if (!name.trim() || !activeInviteId) return
-    addFamilyMember({
-      name: name.trim(),
-      avatar,
-      role: relationship,
-      birthday: birthday || undefined,
-    })
-    // Mark invite as used by removing it
-    removeFamilyInvite(activeInviteId)
-    setJoined(true)
-    setTimeout(() => router.replace('/parent'), 1500)
+  async function handleJoin() {
+    if (!name.trim() || !selectedRole || joining) return
+    setJoining(true)
+
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc('accept_invite_by_token', {
+        p_token: token,
+        p_member_id: generateId(),
+        p_name: name.trim(),
+        p_avatar: avatar,
+        p_role: selectedRole,
+        p_birthday: birthday || null,
+      })
+
+      if (error || !data || data.error) {
+        const errType = data?.error
+        if (errType === 'expired') {
+          setInviteStatus({ type: 'expired' })
+        } else {
+          setInviteStatus({ type: 'not_found' })
+        }
+        setJoining(false)
+        return
+      }
+
+      setJoined(true)
+      setTimeout(() => router.replace('/parent'), 1500)
+    } catch {
+      setJoining(false)
+    }
   }
 
-  const roleInfo = getRoleInfo(relationship)
+  const roleInfo = selectedRole ? getRoleInfo(selectedRole) : null
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (inviteStatus.type === 'loading') {
@@ -132,19 +147,20 @@ function InvitePage({ params, searchParams }: {
   }
 
   // ── Error states ───────────────────────────────────────────────────────────
-  if (inviteStatus.type === 'not_found' || inviteStatus.type === 'expired') {
+  if (inviteStatus.type === 'not_found' || inviteStatus.type === 'expired' || inviteStatus.type === 'already_used') {
+    const messages = {
+      expired: { icon: '⏰', title: 'Invite has expired', desc: 'This invite link has expired. Ask the family owner to create a new one.' },
+      already_used: { icon: '✅', title: 'Invite already used', desc: 'This invite link has already been used. Ask the family owner to create a new one if needed.' },
+      not_found: { icon: '🔗', title: 'Invite not found', desc: 'This invite link is invalid. Ask the family owner to send a new invite.' },
+    }
+    const msg = messages[inviteStatus.type]
+
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-5 py-10 gap-6">
-        <div className="text-6xl">{inviteStatus.type === 'expired' ? '⏰' : '🔗'}</div>
+        <div className="text-6xl">{msg.icon}</div>
         <div className="text-center">
-          <h1 className="text-2xl font-extrabold text-ink-primary mb-2">
-            {inviteStatus.type === 'expired' ? 'Invite has expired' : 'Invite not found'}
-          </h1>
-          <p className="text-ink-secondary text-sm leading-relaxed max-w-xs">
-            {inviteStatus.type === 'expired'
-              ? 'This invite link has expired. Ask the family owner to create a new one.'
-              : 'This invite link wasn\'t found on this device. Invite links currently only work on the same device as the family owner.'}
-          </p>
+          <h1 className="text-2xl font-extrabold text-ink-primary mb-2">{msg.title}</h1>
+          <p className="text-ink-secondary text-sm leading-relaxed max-w-xs">{msg.desc}</p>
         </div>
         <div className="w-full max-w-xs flex flex-col gap-3">
           <p className="text-xs text-ink-muted text-center">Don&apos;t have an account yet?</p>
@@ -172,10 +188,12 @@ function InvitePage({ params, searchParams }: {
           <h1 className="text-[26px] font-extrabold text-ink-primary leading-tight">
             Join {inviteStatus.familyName}
           </h1>
-          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-amber-100 rounded-full">
-            <span className="text-lg">{roleInfo.emoji}</span>
-            <span className="text-amber-800 text-sm font-bold">{roleInfo.label}</span>
-          </div>
+          {roleInfo && (
+            <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-amber-100 rounded-full">
+              <span className="text-lg">{roleInfo.emoji}</span>
+              <span className="text-amber-800 text-sm font-bold">{roleInfo.label}</span>
+            </div>
+          )}
         </div>
 
         {/* Form */}
@@ -213,6 +231,30 @@ function InvitePage({ params, searchParams }: {
             />
           </div>
 
+          {/* Role selector */}
+          <div>
+            <label className="block text-[11px] font-bold text-ink-muted mb-1.5 uppercase tracking-[1.5px]">
+              Your Role
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {ROLES.map(r => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setSelectedRole(r.value)}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-colors text-xs font-medium ${
+                    selectedRole === r.value
+                      ? 'border-brand bg-orange-50 text-brand'
+                      : 'border-line text-ink-secondary hover:border-brand/50'
+                  }`}
+                >
+                  <span className="text-lg">{r.emoji}</span>
+                  <span>{r.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Birthday (optional) */}
           <div>
             <label className="block text-[11px] font-bold text-ink-muted mb-1.5 uppercase tracking-[1.5px]">
@@ -228,10 +270,10 @@ function InvitePage({ params, searchParams }: {
 
           <button
             onClick={handleJoin}
-            disabled={!name.trim()}
+            disabled={!name.trim() || !selectedRole || joining}
             className="w-full h-12 rounded-[14px] bg-brand hover:bg-brand-hover disabled:opacity-50 text-white font-extrabold text-[15px] shadow-brand transition-colors"
           >
-            Join {inviteStatus.familyName} →
+            {joining ? 'Joining…' : `Join ${inviteStatus.familyName} →`}
           </button>
         </div>
 
@@ -247,7 +289,7 @@ function InvitePage({ params, searchParams }: {
 }
 
 export default function InvitePageWrapper({ params, searchParams }: {
-  params: Promise<{ familyCode: string; relationship: string }>
+  params: Promise<{ token: string }>
   searchParams: Promise<{ name?: string }>
 }) {
   return (

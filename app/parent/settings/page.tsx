@@ -491,9 +491,8 @@ function MembersTab({
     setMemberToRemove(null)
   }
 
-  function buildInviteUrl(role: FamilyRole, name?: string) {
-    const code = store.family?.displayCode || store.family?.uid || ''
-    const base = `${window.location.origin}/invite/${encodeURIComponent(code)}/${role}`
+  function buildInviteUrl(invite: FamilyInvite, name?: string) {
+    const base = `${window.location.origin}/invite/${invite.token}`
     const url = new URL(base)
     if (name?.trim()) url.searchParams.set('name', name.trim())
     return url.toString()
@@ -501,7 +500,7 @@ function MembersTab({
 
   function handleCreateInvite() {
     const invite = createFamilyInvite(inviteRole)
-    const url = buildInviteUrl(invite.role, inviteName)
+    const url = buildInviteUrl(invite, inviteName)
     navigator.clipboard.writeText(url).then(() => {
       setCopiedInviteId(invite.id)
       setTimeout(() => setCopiedInviteId(null), 3000)
@@ -511,7 +510,7 @@ function MembersTab({
   }
 
   function copyInviteLink(invite: FamilyInvite) {
-    const url = buildInviteUrl(invite.role)
+    const url = buildInviteUrl(invite)
     navigator.clipboard.writeText(url).then(() => {
       setCopiedInviteId(invite.id)
       setTimeout(() => setCopiedInviteId(null), 3000)

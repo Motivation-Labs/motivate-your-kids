@@ -126,7 +126,7 @@ export default function FamilyMembersPage() {
 
   function handleCreateInvite() {
     const invite = createFamilyInvite(inviteRole)
-    const url = `${window.location.origin}/invite?token=${invite.token}`
+    const url = `${window.location.origin}/invite/${invite.token}`
     navigator.clipboard.writeText(url).then(() => {
       setCopiedInviteId(invite.id)
       setTimeout(() => setCopiedInviteId(null), 3000)
@@ -135,7 +135,7 @@ export default function FamilyMembersPage() {
   }
 
   function copyInviteLink(invite: FamilyInvite) {
-    const url = `${window.location.origin}/invite?token=${invite.token}`
+    const url = `${window.location.origin}/invite/${invite.token}`
     navigator.clipboard.writeText(url).then(() => {
       setCopiedInviteId(invite.id)
       setTimeout(() => setCopiedInviteId(null), 3000)
