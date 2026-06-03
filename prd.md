@@ -1,1874 +1,451 @@
-# Kids Rewards Manager — Product Requirements Document
+# Motivate Kids - Simplified Product Requirements
+
+Last updated: 2026-06-02
+Status: Rebuild PRD
 
-## Overview
+Companion UX plan: `UX_JOURNEYS_AND_LAYOUTS.md`
+Companion implementation tickets: `agent-tickets.md`
+
+## 1. Product Summary
+
+Motivate Kids starts as a WAP/mobile web app for fast iteration and immediate
+family usage, then expands toward packaged Android and iOS apps. Families use it
+to turn daily actions, creative projects, and interest-based challenges into
+visible progress through stars, streaks, badges, media-rich check-ins, and
+parent-approved rewards.
 
-A simple, customizable family web app that helps parents motivate kids by
-tracking and rewarding their actions, achievements, and outputs through points
-and badges.
+The rebuild should keep the product simple for families while expanding beyond
+a private chore chart into a safe, parent-controlled motivation network for
+kids with shared interests.
 
-## Problem
+## 2. Product Direction
 
-Parents struggle to consistently recognize and reinforce positive behavior.
-Existing apps are overly complex, poorly customizable, or don't support
-multiple caregivers managing the same children.
+The app should feel like a playful island world for children and a fast,
+trustworthy operating surface for adults.
 
-## Goals
+Primary design reference:
 
-- Give parents a frictionless way to define custom actions worth rewarding
-- Let kids earn points and unlock badges as they complete those actions
-- Allow kids to redeem points for pre-defined rewards
-- Support multiple kids per family
-- Keep everything customizable — categories, point values, badges, rewards
+- Animal Island UI: https://guokaigdg.github.io/animal-island-ui/#/
 
-## Non-Goals (v1)
+Design principles:
 
-- Native mobile app — iOS via Capacitor planned for v2.5 (see `ios-mobile-build.md`)
-- Server-side backend or multi-device sync (planned for v2)
-- Multi-parent / multi-device support (planned for v2)
-- Social / sharing features
-- AI-generated suggestions (planned for v3)
-- Recurring actions / streaks (planned for v2)
-- Data backup / export (planned for v2)
+- Kid-first visual language: large tap targets, animals, islands, maps,
+  stickers, cards, progress paths, bright but soft color.
+- Rich animation is part of the product, especially when adults award stars,
+  badges, rewards, or group recognition. Kids should feel the moment.
+- Parent-comfortable management: clear forms, simple approval queues, readable
+  history, no clutter.
+- Positive reinforcement first: reward effort, consistency, creativity, and
+  initiative.
+- Safe social by default: every kid interaction is scoped, moderated, and
+  parent-controlled.
+- Media-rich reflection: kids and caregivers can attach video, text, and voice
+  memo evidence to tasks and check-ins.
 
----
+## 3. Users
 
-## Users
+| User | Role |
+| --- | --- |
+| Parent / guardian | Creates the family, manages kids, tasks, rewards, groups, and approvals. |
+| Grandparent | Supports the family by logging tasks, encouraging kids, and reviewing progress. |
+| Parent sibling | Uncle, aunt, or other trusted relative who can support tasks and encouragement. |
+| Kid | Completes tasks, checks in, shares progress in approved groups, and redeems rewards. |
+| Agent / developer tool | Uses MCP or CLI access to inspect, automate, or assist app workflows. |
 
-| Role | Description |
-|------|-------------|
-| Parent / Guardian | Creates and manages actions, approves reward redemptions, defines rewards |
-| Kid | Views their own dashboard, requests reward redemptions |
+Family roles must support:
 
-**Auth model (v1):** Trust-based — no PIN, no accounts. On load, the user
-picks a role ("I'm a parent" or "I'm a kid → pick your name"). The session
-remembers the role until the user explicitly switches. No access control is
-enforced in v1; the separation is a UI convention only.
+- parent
+- grandparent
+- uncle
+- aunt
+- nanny or caregiver
+- other trusted adult
 
-Multi-parent support (inviting a second caregiver) is out of scope for v1
-because there is no backend to sync data across devices. It will arrive in v2
-with Supabase.
+Each family has one or more admins. Admins control membership, kid visibility,
+group participation, and approval rules.
 
----
+## 4. Goals
 
-## Target Audience
+1. Let a family create a usable motivation system in under 10 minutes.
+2. Support rich kid profiles, including avatar and 10-second voice self-intro.
+3. Let adults create tasks, rewards, badges, interest groups, and challenges.
+4. Let kids check in with text, voice, or video proof where appropriate.
+5. Support safe social groups where kids can share streaks and rankings.
+6. Keep all child data private, permissioned, and family-controlled.
+7. Provide MCP and CLI surfaces for AI coding agents and automation tools.
 
-Primary users of the **kid-facing UI** are children aged **4–8**. The UI must
-therefore use:
-- Minimal text; icons and imagery carry meaning
-- Large tap targets
-- Bright, high-saturation accent colors on a warm/light background
-- A single prominent metric (point balance) rather than dense dashboards
+## 5. Non-Goals For The First Rebuild
 
-Parents are the primary users of the management UI. They are comfortable with
-standard web-app conventions.
+- Public social network or public kid profiles.
+- Real-money payments or automated reward fulfillment.
+- Unmoderated kid-to-kid messaging.
+- School classroom management as a primary use case.
+- Complex AI parenting advice.
 
----
+## 6. Tech Stack
 
-## Visual Design Direction
+All application code should use JavaScript.
 
-Inspired by **Duolingo / Khan Academy Kids**:
-- Rounded, friendly fonts (e.g., Nunito or Fredoka One for headings)
-- Warm cream/off-white background; amber and soft-green primary palette
-- High-saturation accent colors for interactive elements
-- Playful micro-interactions and subtle animations
-- Illustrated or emoji-based avatars and badges — no photo uploads
+### Frontend
 
----
+- WAP/mobile web app first, optimized for fast iteration and usage.
+- Next.js App Router using JavaScript and JSX for the mobile web/PWA surface.
+- React for UI.
+- Tailwind CSS for styling.
+- Animal Island UI as the primary theme reference.
+- GSAP for rich JavaScript animation, visual effects, and kid-facing motion.
+- Supabase JavaScript SDK for auth, database, storage, and realtime access.
+- PWA support as the web baseline.
+- Android and iOS packaging support after the mobile web experience stabilizes.
 
-## Core Features — MVP
+### Backend
 
-### 1. First Launch & Onboarding
+- Supabase Auth for accounts and sessions.
+- Supabase Postgres as the database.
+- Supabase Storage for avatars, video, voice memos, and image attachments.
+- Supabase Realtime for live task, group, and approval updates.
+- JavaScript server functions or API routes where custom backend behavior is
+  required.
 
-**First launch (no family data exists):**
-- Branded landing page: app name, tagline, warm illustration
-- Single CTA: "Set up your family →"
-- Leads into the setup wizard
+### Authentication
 
-**Setup wizard (guided but skippable):**
-1. Family name
-2. Add first kid (name + avatar)
-3. Add first action (name + points value)
-4. Done — arrive at parent dashboard
-- Each step has a "Skip for now" link; missing items surface as contextual
-  prompts inside the app
+Required auth methods:
 
-### 2. Role Selection Screen
+- account ID + password
+- email OTP
+- SMS OTP
 
-Shown on every fresh load (no persisted session) or when user taps "Switch role":
+Planned auth methods:
 
-- "I'm a parent" → parent dashboard
-- "I'm a kid" → name picker → kid dashboard
-- No PIN or password in v1 (trust-based)
-
-### 3. Kid Profiles
+- Google OAuth
+- WeChat OAuth
 
-- Add multiple kids with name, emoji avatar, and color accent
-- Each kid has an independent points balance and badge collection
-- Parents can view per-kid activity history
-
-### 4. Actions Catalog
-
-- Parents define custom actions (e.g., "Clean your room", "Read for 20 min")
-- Each action includes: name, description, category, points value (1–10 scale),
-  optional badge award
-- Built-in categories: Chores, Academics, Behavior, Health, Creativity
-- Starter templates for common actions (can be customized or deleted)
-- Actions can be active or archived
-- The same action can be logged multiple times per day (no daily limit)
-- No recurring/scheduled actions in v1
-
-### 5. Logging Action Completions (Parent)
-
-Parent can log a completion from **three entry points**:
-1. **Floating action button (FAB)** — visible on every screen; opens a modal:
-   pick kid → pick action → confirm
-2. **Kid profile page** — action list specific to that kid; tap to log
-3. **Parent dashboard** — quick-action shortcuts per kid card
-
-Only parents can mark actions as complete. Kids have no self-report flow in v1.
-
-### 6. Points System
-
-- Small-number economy: actions award **1–10 points** each
-- Rewards cost **~20–50 points** (configurable per reward)
-- Parents can award manual bonus points with a note
-- Points history visible to both parents and the kid
-- No expiry, no streak multipliers in v1
-
-### 7. Badges
-
-- Parents create badges (emoji icon + name + description)
-- Badge triggers: manual award only in v1 (automatic milestones in v2)
-- Kids see their badge collection on their dashboard
-- Badges are purely visual / honorary — no points value
-
-### 8. Reward Redemption
-
-**Kid flow:**
-1. Kid browses reward catalog — all rewards shown; unaffordable ones are greyed
-   out with points needed displayed
-2. Kid taps an affordable reward → confirmation dialog ("Spend X ⭐ on [Reward]?")
-3. Kid confirms → success screen: "Request sent! Ask Mom/Dad to approve 🎉"
-4. Points are **not deducted yet** — held pending parent approval
-
-**Parent flow:**
-- Badge count on the Approvals nav item shows pending requests
-- Parent opens `/parent/approvals`, sees pending requests per kid
-- Parent approves → points deducted, kid notified next time they open app
-- Parent denies → request dismissed, points unchanged
-
-### 9. Dashboards
-
-**Parent dashboard (`/parent`):**
-- Summary card per kid: points balance, recent badge, pending redemption count
-- Activity feed: recent completions and pending approvals
-- Quick-action shortcuts (log completion per kid)
-- FAB for fast action logging
-
-**Kid dashboard (`/kids/[id]`):**
-- Kid's name + avatar (large, prominent)
-- Points balance: giant bold number + ⭐ icon (easy for young kids to read)
-- Badge wall: emoji grid of earned badges
-- Rewards section: full catalog, unaffordable items greyed out
-- Minimal text; icons and visuals carry the UI
-
----
-
-## Customization
-
-| Area | What's Customizable |
-|------|---------------------|
-| Actions | Name, description, category, point value, linked badge |
-| Badges | Name, emoji icon, description |
-| Rewards | Name, description, points cost, active/inactive |
-| Kid profiles | Name, emoji avatar, color accent |
-| Categories | Add/rename/remove action categories |
-
----
-
-## Tech Stack
-
-| Layer | Choice |
-|-------|--------|
-| Framework | Next.js 14 (App Router) + TypeScript |
-| Styling | Tailwind CSS |
-| Components | shadcn/ui (Radix UI primitives + Tailwind) |
-| State / persistence | React Context + localStorage |
-| Auth | None (trust-based role selection in v1) |
-| Deployment | Vercel |
-
----
-
-## Data Model (v1 — localStorage)
-
-```
-Family       { id, name, createdAt }
-Kid          { id, familyId, name, avatar, colorAccent, createdAt }
-Category     { id, familyId, name, icon }
-Action       { id, familyId, name, description, categoryId, pointsValue,
-               badgeId?, isTemplate, isActive }
-Badge        { id, familyId, name, icon, description }
-Reward       { id, familyId, name, description, pointsCost, isActive }
-Transaction  { id, kidId, type ('earn' | 'redeem'), amount, actionId?,
-               rewardId?, status ('approved' | 'pending' | 'denied'),
-               timestamp, note? }
-KidBadge     { kidId, badgeId, awardedAt }
-```
-
-Notes:
-- No `Parent` entity in v1 (trust-based, no accounts)
-- No `joinCode` or multi-parent fields
-- `Transaction.status` for earn transactions is always `approved`; for redeem
-  transactions it starts `pending` and transitions to `approved` or `denied`
-
----
-
-## Pages & Routing
-
-```
-/                       Role selection screen (or redirect if session active)
-/setup                  Family onboarding wizard
-/parent                 Parent dashboard (all kids overview)
-/parent/actions         Manage actions catalog
-/parent/rewards         Manage reward catalog
-/parent/badges          Manage badges
-/parent/kids            Manage kid profiles
-/parent/approvals       Pending redemption requests  [badge count shown in nav]
-/kids/[id]              Kid's personal dashboard
-```
-
----
-
-## Navigation
-
-**Bottom tab bar** (mobile-first, shown on all app screens after setup):
-
-- **Parent tabs:** Home | Kids | Actions | Approvals | More
-- **Kid tabs:** My Stars | Badges | Rewards
-
-The FAB (floating action button for logging completions) floats above the tab
-bar on all parent screens.
-
-Role switching is accessible from the "More" tab or from the home/role-select
-screen.
-
----
-
-## MVP Success Criteria
-
-- [ ] First-launch landing page leads cleanly into setup wizard
-- [ ] Parents can create a family and add 2+ kids
-- [ ] Parents can define 5+ custom actions across categories
-- [ ] Parent can log a completion via FAB, kid profile, and dashboard (all 3 paths)
-- [ ] Kids can view their ⭐ balance and badge wall
-- [ ] Reward catalog shows all rewards; unaffordable ones greyed out
-- [ ] Redemption request → parent approval → points deducted works end-to-end
-- [ ] Data persists across browser sessions (localStorage)
-- [ ] App is fully usable on a 375px-wide mobile browser (PWA-ready layout)
-
----
-
-## Roadmap
-
-| Version | Focus |
-|---------|-------|
-| v1 (current) | Web PWA, localStorage, trust-based auth, core reward loop |
-| v2 | Backend (Supabase), multi-device sync, multi-parent, recurring actions, push notifications, data export |
-| v2.5 | Monorepo migration, Capacitor iOS build, App Store launch |
-| v3 | Marketing website, docs site, Android app, AI-suggested actions, streaks |
-| v4 | React Native rewrite (if needed), advanced gamification, social features |
-
----
-
-## Monorepo Codebase Structure
-
-The project is evolving from a single Next.js app into a multi-platform product. This
-section defines the target monorepo structure that houses: the marketing website,
-documentation site, PWA (current app), iOS native app, and Android app (future).
-
-### Package Manager & Tooling
-
-| Tool | Purpose |
-|------|---------|
-| **pnpm workspaces** | Monorepo package management (faster, disk-efficient) |
-| **Turborepo** | Build orchestration, caching, task pipelines |
-| **TypeScript** | Shared across all packages (strict mode) |
-| **ESLint + Prettier** | Unified lint/format config at root |
-
-### Directory Layout
-
-```
-motivate-your-kids/
-├── apps/
-│   ├── web/                    # Current Next.js PWA (parent + kid dashboards)
-│   │   ├── app/                # Next.js App Router pages
-│   │   ├── components/         # Web-specific UI components
-│   │   ├── context/            # React Context providers
-│   │   ├── public/             # Static assets, sw.js
-│   │   ├── next.config.mjs
-│   │   ├── capacitor.config.ts # Capacitor config (for iOS/Android builds)
-│   │   ├── ios/                # Capacitor iOS project (Xcode)
-│   │   ├── android/            # Capacitor Android project (future)
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── website/                # Marketing / landing page
-│   │   ├── app/                # Next.js App Router
-│   │   │   ├── page.tsx        # Landing page (hero, features, testimonials, CTA)
-│   │   │   ├── pricing/        # Pricing page (if applicable)
-│   │   │   ├── about/          # About / team page
-│   │   │   └── blog/           # Blog (MDX-powered)
-│   │   ├── components/         # Marketing-specific components
-│   │   ├── content/            # MDX blog posts and content
-│   │   ├── next.config.mjs
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── docs/                   # Documentation site
-│       ├── app/                # Next.js or Docusaurus/Nextra
-│       │   ├── getting-started/
-│       │   ├── guides/
-│       │   │   ├── parent-guide/
-│       │   │   └── kid-setup/
-│       │   ├── api-reference/  # Supabase schema, webhook docs
-│       │   └── faq/
-│       ├── package.json
-│       └── tsconfig.json
-│
-├── packages/
-│   ├── shared/                 # Shared logic across all apps
-│   │   ├── types/              # TypeScript types (Kid, Action, Reward, Transaction, etc.)
-│   │   │   └── index.ts        # ← current types/index.ts moves here
-│   │   ├── logic/              # Pure business logic
-│   │   │   ├── points.ts       # Point calculation, balance checks
-│   │   │   ├── validation.ts   # Input validation rules
-│   │   │   └── seeds.ts        # ← current lib/seeds.ts
-│   │   ├── i18n/               # Locale dictionaries
-│   │   │   └── index.ts        # ← current lib/i18n.ts
-│   │   ├── constants/          # App-wide constants (roles, categories, limits)
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── ui/                     # Shared UI component library (web only)
-│   │   ├── components/         # ← shadcn/ui components from components/ui/
-│   │   ├── hooks/              # Shared React hooks
-│   │   ├── styles/             # Shared Tailwind presets, design tokens
-│   │   │   ├── tailwind.preset.ts
-│   │   │   └── tokens.css      # CSS custom properties (colors, spacing)
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── supabase/               # Supabase client, migrations, types
-│   │   ├── client.ts           # ← current lib/store.ts
-│   │   ├── migrations/         # SQL migration files
-│   │   ├── seed.sql            # Dev seed data
-│   │   ├── generated/          # Auto-generated TypeScript types from schema
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── config/                 # Shared tooling configs
-│       ├── eslint/             # ESLint presets
-│       ├── tsconfig/           # Base tsconfig.json presets
-│       └── tailwind/           # Tailwind base config
-│
-├── turbo.json                  # Turborepo pipeline config
-├── pnpm-workspace.yaml         # Workspace package definitions
-├── package.json                # Root scripts
-├── prd.md                      # This file (stays at root)
-├── ios-mobile-build.md         # iOS build guide
-└── CLAUDE.md                   # AI assistant instructions
-```
-
-### Workspace Configuration
-
-**pnpm-workspace.yaml:**
-```yaml
-packages:
-  - 'apps/*'
-  - 'packages/*'
-```
-
-**turbo.json:**
-```json
-{
-  "$schema": "https://turbo.build/schema.json",
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "out/**", "dist/**"]
-    },
-    "dev": { "cache": false, "persistent": true },
-    "lint": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"] },
-    "type-check": { "dependsOn": ["^build"] }
-  }
-}
-```
-
-### Package Dependency Graph
-
-```
-apps/web        → packages/shared, packages/ui, packages/supabase
-apps/website    → packages/ui, packages/config
-apps/docs       → packages/config
-packages/ui     → packages/shared (for types)
-packages/supabase → packages/shared (for types)
-```
-
-### Migration Plan (Current → Monorepo)
-
-This is a gradual migration. The app continues to work at every step.
-
-| Phase | What Moves | When |
-|-------|-----------|------|
-| **0 (now)** | Keep current flat structure. Add `ios-mobile-build.md`. Plan only. | v0.2.x |
-| **1** | Extract `packages/shared` (types, i18n, seeds, helpers). Current app imports from it. | v0.3.0 |
-| **2** | Add Capacitor to current app (`ios/` and `android/` dirs inside app root). Ship iOS. | v0.3.x |
-| **3** | Restructure into `apps/web` + `packages/*`. Add Turborepo + pnpm workspaces. | v0.4.0 |
-| **4** | Add `apps/website` (marketing landing page). | v0.5.0 |
-| **5** | Add `apps/docs` (user guides, API reference). | v0.6.0 |
-| **6** | (Optional) Add `apps/mobile` if migrating from Capacitor to React Native. | v1.0+ |
-
-### Platform Build Matrix
-
-| Platform | Build Command | Output | Deploy Target |
-|----------|--------------|--------|---------------|
-| PWA (web) | `pnpm --filter web build` | `.next/` (SSR) or `out/` (static) | Vercel |
-| iOS | `pnpm --filter web build:ios` | Xcode archive → `.ipa` | App Store |
-| Android | `pnpm --filter web build:android` | Gradle → `.aab` | Play Store (future) |
-| Website | `pnpm --filter website build` | `.next/` | Vercel |
-| Docs | `pnpm --filter docs build` | `.next/` or `out/` | Vercel |
-
-### Domain Strategy
-
-| App | Domain |
-|-----|--------|
-| PWA | `app.motivationlabs.ai` |
-| Website | `motivationlabs.ai` (or `www.`) |
-| Docs | `docs.motivationlabs.ai` |
-
----
-
-## Evaluation Log & Optimization Notes
-
-### Round 1 — Self-evaluation (Feb 2026)
-
-#### Bugs Fixed
-
-**[Bug] Hydration race condition — error page on kid tap**
-- **Root cause:** `FamilyContext` hydrates from localStorage asynchronously. On first render, `store` is empty (`DEFAULT_STORE`). Pages that check `if (!kid)` and redirect via `useEffect` would fire the redirect before the data was loaded, causing an error/blank page.
-- **Fix:** Added `hydrated: boolean` to `FamilyContext`. All pages that guard on `kid`/`family` existence now wait for `hydrated` before redirecting. Pattern: `if (hydrated && !kid) router.replace(...)` and `if (!hydrated || !kid) return null`.
-- **Affected pages:** `/parent`, `/parent/kids/[id]`, `/kids/[id]`, `/kids/[id]/badges`, `/kids/[id]/rewards`.
-
-#### UX Improvements Applied
-
-**[UX] Add kid is a rare action — demoted from primary to secondary**
-- Adding a kid happens once per year at most for a conventional family. Previously, a prominent "+ Kid" button sat in the header of the Home page.
-- **Fix:** Removed the header button. "+ Add another kid" is now a dashed outline button at the bottom of the kid list — visually quiet but discoverable. The first-run empty state retains a prominent CTA.
-
-**[UX] Single-kid family: FAB should not ask "pick a kid"**
-- When there is only one kid, the logging FAB's kid-picker step is pure friction.
-- **Fix:** `LogActionFab` detects single-kid families. If only one kid exists, the kid is auto-selected and shown as a read-only header in the modal. The picker dropdown is hidden entirely. Multi-kid families still see the full picker (now rendered as tap-target buttons instead of a select).
-
-**[UX] Actions tab lacked usage context**
-- Actions are the core catalog parents build up over time, but there was no signal about which ones were actually being used.
-- **Fix:** Added per-action completion count (e.g., `✓ 12×`) computed from the transaction log. Added sort bar: Default | Most used | Category | Stars ↓. Helps parents prune unused actions and surface favorites.
-
-**[UX] Redemption flow was invisible**
-- The Rewards tab managed the reward catalog but gave no hint that redemption happened elsewhere (kid's profile page). Users could not discover the redeem path.
-- **Fix:** Added a persistent info banner at the top of the Rewards tab explaining *how* redemption works with a direct link to each kid's profile page. Reward cost input changed from a limited slider (5–100) to quick-pick chips + custom number input (matching actions).
-
-**[UX] Rewards cost range was too narrow**
-- Actions can now be worth up to 500 stars (for achievements), but rewards were capped at 100 stars via a slider. Inconsistency.
-- **Fix:** Rewards now use quick-pick chips (10, 20, 30, 50, 75, 100) plus a custom number input — uncapped, consistent with the actions pattern.
-
----
-
-### Round 2 — Enhancement Batch (Feb 2026)
-
-#### Requests
-
-1. **Home tab — avatar switcher + embedded kid profile**
-2. **Actions tab — quick-log button per action**
-3. **Punishment actions — deduct points, color-coded, adjust+reason dialog**
-4. **Rewards tab — redemption stats, affordability color, per-kid wishlist**
-5. **Remove the floating FAB**
-
----
-
-#### Design Decisions
-
-**F5 — Remove FAB**
-- The FAB (floating "+") was the primary log-action entry point but conflicts with the redesigned home tab (F1) and actions quick-log (F2), which together provide two clearer paths.
-- **Decision:** Remove `LogActionFab` from the parent layout entirely. No replacement FAB needed because:
-  - Home tab's embedded kid profile provides inline action logging
-  - Actions tab provides a "Log" button per action
-
-**F1 — Home Tab: Avatar Switcher + Embedded Kid Profile**
-- **Problem:** The home tab showed a list of kid cards (balance + links) with no useful action. Parents had to tap through to a separate page to log anything.
-- **Design:**
-  - Top of home: a horizontal scrollable row of kid avatars. Tapping one selects that kid (active = highlighted with accent color ring). Defaults to first kid on load.
-  - Below the avatar row: the selected kid's full profile view inline — star balance, "Log an action" list, "Redeem a reward" list, recent activity.
-  - Kid management (edit/delete) lives in a compact secondary control under each avatar (small pencil icon below avatar). This keeps the primary surface clean.
-  - Empty state (no kids): unchanged — prominent "Add a kid" CTA.
-  - The `/parent/kids/[id]` deep-link route is retained for compatibility but the home tab is the primary workspace.
-
-**F2 — Actions Tab: Quick Log Button**
-- Each active action card gets a "Log" button alongside Edit/Archive.
-- Tapping "Log" opens a confirmation dialog (shared with F3's design):
-  - Header: kid picker (if multiple kids, shown as avatar buttons; if 1 kid, skip picker)
-  - Amount row: default value pre-filled, subtle [−] / [+] buttons for adjustment
-  - Reason field: appears only if value was adjusted from default (optional text input)
-  - CTA: "Award X ⭐ to [Kid]" or "Deduct X ⭐ from [Kid]" (if punishment action)
-- Archived actions are not shown in the active list, so no log button needed there.
-
-**F3 — Punishment Actions**
-- **Data model changes:**
-  - `Action`: add `isDeduction: boolean` (default `false`)
-  - `Transaction.type`: expand from `'earn' | 'redeem'` to `'earn' | 'redeem' | 'deduct'`
-  - `Transaction`: add `reason?: string` (recorded when amount was adjusted or for audit)
-  - Balance calculation: `earn → +amount`, `redeem → −amount`, `deduct → −amount`
-- **UI:**
-  - Action form toggle: "⭐ Reward (earn points)" / "⚠️ Punishment (deduct points)"
-  - Active actions list: reward actions shown normally (amber/green); punishment actions shown with a red-tinted row and a "−" label.
-  - Log confirmation for punishments: red-tinted dialog, "Deduct X ⭐ from [Kid]" CTA with warning color.
-  - Balance can go negative (intentional — parent has full control).
-
-**F4 — Rewards Improvements**
-- **a. Redemption stats (parent rewards management tab):**
-  - Compute per-reward redemption count from transactions (`type === 'redeem' | 'deduct'` with matching `rewardId`).
-  - Show "Redeemed N×" badge on each reward card.
-  - "Days in a row" is deferred (requires streak calculation logic; out of scope for this batch).
-- **b. Affordability color (kid-facing views — home tab + /kids/[id]/rewards):**
-  - Rewards the selected kid can currently afford: amber/green highlight border.
-  - Unaffordable: normal (slightly dimmed). This replaces the current `opacity-55` approach.
-- **c. Per-kid Wishlist (kid-facing views):**
-  - **Data model:** `Kid` gains optional `wishlist?: string[]` (array of reward IDs, max 3).
-  - Context adds `addToWishlist(kidId, rewardId)` and `removeFromWishlist(kidId, rewardId)`.
-  - Reducer: reuse `UPDATE_KID` action (update kid's wishlist array).
-  - **Wishlist UI (kid-facing reward view):**
-    - If any wishes exist, a "My Wishlist" section renders at the top.
-    - Each wished reward shows: name, cost, progress bar (current stars / cost), and "Remove" link.
-    - Rewards section below: unaffordable rewards that are not yet wishlisted show "+ Add to wishlist" (disabled if 3 wishes already active).
-    - When a kid redeems a wishlisted reward, the app auto-removes it from the wishlist.
-  - Wishlist data is stored on the `Kid` entity in localStorage — persists across sessions.
-
----
-
-#### Updated Data Model
-
-```
-Action       { id, familyId, name, description, categoryId, pointsValue,
-               isDeduction, badgeId?, isTemplate, isActive }
-Transaction  { id, kidId, type ('earn' | 'redeem' | 'deduct'), amount,
-               actionId?, rewardId?, status, timestamp, note?, reason? }
-Kid          { id, familyId, name, avatar, colorAccent, createdAt,
-               wishlist? }
-```
-
----
-
-#### Implementation Order
-
-| # | Feature | Scope |
-|---|---------|-------|
-| F5 | Remove FAB | 1 file — layout only |
-| F1 | Home tab redesign | Rewrite parent/page.tsx |
-| F2 | Actions quick-log | Add log dialog to actions page |
-| F3 | Punishment actions | Data model + actions form + log dialog |
-| F4 | Rewards improvements | Data model + rewards page + kid rewards view |
-
-Each feature is built and manually verified before the next begins.
-
----
-
----
-
-### Round 3 — Focus Group Feedback (Mar 2026)
-
-Feedback collected from a parent focus group (primary users: mothers of children aged 4–8).
-Original feedback in Chinese; interpreted and prioritised below.
-
----
-
-#### FB-1 · Transaction Undo / Delete  *(High priority)*
-
-> "If you accidentally add the wrong stars, you should be able to immediately swipe to delete or undo, instead of having to select a deduction to offset it."
-
-**Problem:** Mistakes happen in real-time, often with a child watching. The current workaround — creating a deduction transaction — is confusing, leaves a messy history, and adds friction at an emotionally charged moment.
-
-**Requirements:**
-- Each transaction in the activity feed shows a delete/undo affordance (e.g., swipe-to-dismiss or a trash icon).
-- Undo window: 60 seconds after logging, a prominent toast appears: "⭐ +5 logged — Undo". After 60 s the option disappears.
-- Hard delete (swipe or tap trash on history view) is available for any transaction regardless of age, with a single confirmation tap.
-- Deleting a `redeem` transaction refunds the stars to the kid's balance.
-- Deleting a `deduct` transaction restores the stars.
-
----
-
-#### FB-2 · Chinese (Simplified) Localisation  *(Medium priority)*
-
-> "Is there a Chinese version?"
-
-**Requirements:**
-- All visible UI strings are extracted into a locale file (`en.ts` / `zh-CN.ts`).
-- Language is set once in family settings; stored in `AppMeta` (not `AppStore` so it survives data resets).
-- Default language: auto-detect from `navigator.language`; fallback to English.
-- In-scope for v1.x: all parent-facing strings and the kid dashboard. Onboarding wizard included.
-- Out-of-scope: RTL layouts (no RTL languages planned).
-
-**Implementation note:** Use a lightweight custom i18n hook (`useT()`) that reads from a locale dictionary; avoid heavy libraries like `next-intl` for v1.x.
-
----
-
-#### FB-3 · Action Form — Remove Mandatory Category  *(High priority)*
-
-> "The action creation form shouldn't block submission until a category is selected — it feels coercive. When moms are adding or deducting stars they may be in an emotional state; if the app is hard to use it gets deleted immediately."
-
-**Problem:** The current form requires a category before the action can be saved. Category is a secondary organisational concern; the action name and point value are what actually matter.
-
-**Requirements:**
-- Category becomes **optional** on the action form. An action can be saved with name + points alone.
-- If category is omitted, actions are grouped under an implicit "Uncategorised" bucket in list views.
-- The category picker is visually de-emphasised (smaller, below the main fields) rather than appearing as a blocking gate.
-- The existing preset chips for point values (1, 3, 5, 10 …) remain, but the **custom number input is always visible and editable** — it is the canonical field. Chips are shortcuts that pre-fill the input.
-- Autocomplete on the name field must not suppress the first character typed (if it does, disable autocomplete on that input).
-
----
-
-#### FB-4 · Weekly / Monthly Analytics Report  *(Medium priority)*
-
-> "It would be great to have a weekly and monthly summary table showing overall performance, with daily and monthly total star data."
-
-**Requirements:**
-- New route: `/parent/report` (accessible from the More tab as "📊 Reports").
-- Two views selectable via a toggle: **This Week** / **This Month**.
-- **This Week view:**
-  - Bar chart or table with one row/column per day (Mon–Sun); each cell shows net stars earned that day.
-  - Summary row: total stars earned, total deducted, net change, rewards redeemed.
-- **This Month view:**
-  - Same layout but one row per week of the month.
-  - Per-day detail is accessible by tapping a week row (expand inline).
-- Per-kid filter: defaults to "All kids"; a chip row above the table lets parents filter to one kid.
-- No external charting library in v1.x — render as a simple HTML table with inline bar visualisation using `div` widths (consistent with existing no-dep approach).
-- Data is computed entirely from `store.transactions` — no new data model fields needed.
-
----
-
-#### FB-5 · Quick-Action Home Page  *(High priority)*
-
-> "The first page should have simple, prominent buttons to add or deduct stars. Tapping one pops up a modal to optionally enter a reason. If you don't want a reason, you can add/deduct directly."
-
-**Problem:** The current home tab is an activity feed / overview. Parents who open the app specifically to log something have to navigate to Actions or a kid's profile first. In emotional moments this extra tap causes drop-off.
-
-**Requirements:**
-- The **first tab** (Home) becomes a **Quick Log** surface, not an overview feed.
-- Layout:
-  1. Kid selector row at the top (compact horizontal chips — same as current balance chips).
-  2. Two large prominent buttons: **"+ Add Stars"** (amber/green) and **"− Deduct Stars"** (red/rose).
-  3. Tapping either opens a bottom sheet with: amount selector (default 5), optional reason text field ("What happened?"), and a confirm button. Reason is never mandatory.
-  4. Below the quick-log buttons: the existing date-grouped activity feed (keep for context).
-- The existing Getting Started guide card stays between the kid chips and the quick buttons when active.
-- The overview dashboard behaviour moves to a secondary view (e.g., a "Summary" entry in More tab or a scrollable section below the feed).
-
----
-
-#### FB-6 · Motivational Micro-copy on Star Events  *(Medium priority)*
-
-> "When adding stars the confetti is great. When deducting stars it could say something like 'Stand your ground, better next time' to comfort and encourage moms."
-
-**Requirements:**
-- **On earn/add:** keep existing confetti burst. Optionally append a short random encouragement to the flash toast (e.g., "Keep it up! 🌟", "You're doing great! ⭐").
-- **On deduct:** replace the plain flash toast with a warmer message. Pick randomly from a set of short, validating phrases shown in the toast, e.g.:
-  - "坚持立场，下次更好 💪" / "Stand your ground — better next time 💪"
-  - "Setting boundaries is love ❤️"
-  - "Consistency is key 🔑"
-  - "You've got this, keep going 🌈"
-- Phrases stored in a locale-keyed map (feeds into FB-2 Chinese localisation naturally).
-- No confetti on deduction — the visual language should feel firm but warm, not celebratory.
-
----
-
-#### FB-7 · Action Form — Free-Form Input & First-Character Bug  *(High priority)*
-
-> "Adding a new action is awkward: you can't change the first letter, and you can only select from the numbers above."
-
-**Two distinct problems:**
-
-**a) First-character input bug:**
-- The action name input may have `autocomplete` or browser-native autofill interfering with the first keystroke.
-- Fix: add `autoComplete="off"` and `autoCorrect="off"` to the name `<input>`. Verify that `autoFocus` does not conflict with IME (input method editors) for Chinese keyboards.
-
-**b) Point value selector feels locked to presets:**
-- The chip row (1, 3, 5, 10, 25, 50, 100) reads as the only valid options.
-- Fix: ensure the custom `<input type="number">` below the chips is prominent (same visual weight as chips), always editable, and clearly labelled "or enter any value". The chips simply prefill it as shortcuts.
-
----
-
-#### Priority Matrix (Round 3)
-
-| ID | Feature | Priority | Effort | Target |
-|----|---------|----------|--------|--------|
-| FB-1 | Transaction undo / delete | High | M | v1.1 |
-| FB-3 | Remove mandatory category | High | S | v1.1 |
-| FB-5 | Quick-action home page | High | M | v1.1 |
-| FB-7 | Action form input fixes | High | S | v1.1 |
-| FB-6 | Motivational micro-copy | Medium | S | v1.1 |
-| FB-4 | Weekly/monthly report | Medium | M | v1.2 |
-| FB-2 | Chinese localisation | Medium | L | v1.2 |
-
----
-
-#### Observations for Future Iterations (v1.x / v2)
-
-- **Kid dashboard (/kids/[id]):** The recent activity feed only shows 5 entries and displays generic emoji (⭐/🎁). Enhance with category-specific icons and a "See all" link.
-- **First launch UX:** After setup wizard completes, user lands on parent dashboard with no guidance about next steps. A one-time "tips" banner (log your first action → set up rewards → redeem) would reduce drop-off.
-- **Action logging confirmation:** Currently shows a toast. For young kids watching over parent's shoulder, a more celebratory flash (animation, confetti) would reinforce the reward moment.
-- **Empty Actions tab:** When no actions exist, the empty state should link directly to the setup wizard's action step rather than just saying "Add one!".
-- **Navigation clarity:** "More" tab is a catch-all. As the app grows, Badges and History should graduate to their own tabs or be surfaced more prominently (e.g., per-kid badges visible on the kid card).
-- **Redeem section on kid profile:** Label "Redeem a reward" is parent-centric but clear. Consider also showing the kid's recent redemption history inline so parents can track what was given.
-- **Points economy calibration:** With actions supporting 1–500 stars and rewards supporting custom costs, families need guidance on balancing the economy. A setup nudge ("typical actions: 3–10 stars; typical rewards: 20–50 stars") would help first-time parents.
-- **LogActionFab on kid detail page:** The FAB is redundant when already on a kid's page that has an inline action list. Consider hiding FAB on `/parent/kids/[id]` to reduce visual clutter.
-
----
-
-### Round 4 — Parent User Feedback (Mar 2026)
-
-Feedback collected from a parent user after v1.1 shipped.
-Original feedback in Chinese; translated and interpreted below.
-
----
-
-#### FB-8 · Direct Number Input for Star Amount  *(High priority)*
-
-> "加星星的数字之前那种形式可以，只要可以把第一个数也可以改就行，总的来说要可以直接录入数字是最方便的"
-> ("The previous stepper form is fine, just need to be able to change the first digit too. Overall, being able to directly enter a number is most convenient.")
-
-**Problem:** The current star-amount stepper in the earn/deduct sheet shows a read-only number display. Users cannot tap the number and type directly — they must tap +/− repeatedly to reach their target, which is slow for large values.
-
-**Requirements:**
-- Replace the read-only number display with `<input type="number">` that is always directly editable.
-- The +/− stepper buttons remain as convenience shortcuts (increment/decrement by 1).
-- Input is pre-filled with a sensible default (e.g., the action's `pointsValue` when an action is selected, otherwise 1).
-- Min value: 1. No upper cap enforced in UI (parent has full control).
-- On mobile, tapping the input should open a numeric keyboard (`inputMode="numeric"`).
-- Applies everywhere a star amount is entered: earn sheet, deduct sheet, bonus-points dialog.
-
----
-
-#### FB-9 · Home Page — Per-Kid Cards with Inline Action Sheets  *(High priority)*
-
-> "主页直接显示人名，星星数，和 add，deduct，redeem 摁钮，然后进入具体事件和编辑星星的界面，custom 星星和事件摁钮要放在 top，接下来再是历史事件"
-> ("The home page should directly show each kid's name, star balance, and Add/Deduct/Redeem buttons. Tapping one enters a specific event and star-editing interface where custom star input and event buttons are at the top, followed by history events.")
-
-**Problem:** The current home page uses global Add/Deduct/Redeem buttons that require a kid-picker step inside the sheet. Users want per-kid buttons on the home page itself so the action is pre-contextualised — no extra selection step.
-
-**Design:**
-
-*Home page layout (replaces current kid chips + global buttons):*
-- One card per kid, showing: avatar + name + current star balance + three inline buttons (⭐ Add, ⚠️ Deduct, 🎁 Redeem).
-- Cards are full-width, stacked vertically — no horizontal scroll.
-- Tapping any button opens a **tall bottom sheet (~85% screen height)**, pre-locked to that kid. No kid picker inside the sheet.
-
-*Per-kid bottom sheet layout (Add / Deduct modes):*
-1. **Header:** kid avatar + name + mode label (e.g., "Add Stars for Mia") + close button.
-2. **Action section (top):**
-   - Direct number input (see FB-8) — typeable, with +/− buttons.
-   - Event buttons: tap-target grid of active actions (earn or deduction actions depending on mode). Tapping an action pre-fills the amount with that action's `pointsValue` and records the `actionId` on the transaction.
-   - "Custom (no event)" option always available for free-form amount entry without linking to a specific action.
-   - Optional reason text field (shown when no event is selected, or always visible in Deduct mode).
-3. **Confirm button:** "Award X ⭐ to [Kid]" or "Deduct X ⭐ from [Kid]".
-4. **Transaction history (below the fold, scrollable):** last N transactions for this kid, so the parent can see context while logging.
-
-*Per-kid bottom sheet layout (Redeem mode):*
-1. **Header:** kid avatar + name + "Redeem for [Kid]" + close button.
-2. **Reward list:** all active rewards shown as tap targets. Rewards the kid cannot afford are dimmed but tappable (parent override allowed). Tapping a reward opens a **confirm dialog** showing reward name, default cost, and an optional amount adjustment input.
-3. Confirm → deducts stars and logs `type: 'redeem'` transaction.
-
-**What this replaces:**
-- The current global quick-action buttons + kid-picker inside the sheet (from FB-5/v1.1) are removed.
-- The horizontal kid-balance chip row is replaced by the per-kid card layout.
-- Getting Started guide card (if active) remains at the top of the home page, above the kid cards.
-- Activity feed (date-grouped, all kids) remains below the kid cards as secondary context.
-
----
-
-#### Priority Matrix (Round 4)
-
-| ID | Feature | Priority | Effort | Target |
-|----|---------|----------|--------|--------|
-| FB-8 | Direct number input | High | S | v1.2 |
-| FB-9 | Home page per-kid layout | High | M | v1.2 |
-
----
-
-### Round 5 — Backend & Invite System (Mar 2026)
-
-#### Infrastructure Upgrade
-
-Migrate from localStorage-only to a full backend stack:
-
-| Layer | Choice |
-|-------|--------|
-| Database | Supabase (PostgreSQL + RLS) |
-| Auth | Supabase Auth (Google OAuth + email/password) |
-| Email | Resend |
-| Deployment | Vercel |
-
-#### FB-10 · Invite Family Member *(High priority)*
-
-**Requirements:**
-- First parent (family owner) can create invite links from Settings > Family Members.
-- Invite link contains a unique token and expires after **24 hours**.
-- Invite can optionally include an email address — if provided, an invite email is sent via Resend.
-- Invitee opens link → signs up / logs in → configures their **role** (relationship to kids).
-- Available relationships: Mother, Father, Grandma, Grandpa, Aunt, Uncle, Other.
-- Invited members get full parent-level access (same CRUD as owner) once accepted.
-- Settings page shows current family members and pending invites.
-
-**Data model additions:**
-```
-FamilyMember  { id, familyId, userId, email, displayName, relationship, isOwner, joinedAt }
-Invite        { id, familyId, invitedBy, email?, token, relationship, status, createdAt, expiresAt, acceptedAt? }
-```
-
-**New routes:**
-- `/login` — Email/password login
-- `/signup` — Account creation
-- `/invite?token=xxx` — Accept invite flow (auth → role config → join)
-- `/api/invite` — Create invite (POST) / validate invite (GET)
-- `/api/invite/accept` — Accept invite (POST)
-- `/auth/callback` — Supabase auth code exchange
-
-**Auth methods:**
-- **Google OAuth** — primary, lowest-friction sign-in. Uses `supabase.auth.signInWithOAuth({ provider: 'google' })`. Supabase auto-creates the account on first Google login.
-- **Email/password** — fallback for users without Google accounts. Requires email confirmation via Supabase Auth.
-- Both methods share the same `/auth/callback` route for code exchange.
-
-**Prerequisites (Supabase dashboard):**
-- Enable Google provider in Auth > Providers > Google
-- Add Google OAuth client ID + secret from Google Cloud Console
-- Add production URL to Auth > URL Configuration > Redirect URLs
-
-**RLS policies:** All data tables scoped to family membership via `user_family_ids()` helper function.
-
----
-
-### Round 6 — Focus Group Distribution Readiness (Mar 2026)
-
-Preparing the app for external distribution to the parent focus group. Covers auth UX improvements, family member management, richer profile avatars, and sensory feedback.
-
----
-
-#### FB-11 · Auth Enhancement: OTP + Magic Link  *(High priority)*
-
-> Lower the sign-up/sign-in friction — especially for invited family members who may not want to create a password.
-
-**Requirements:**
-
-**a) Sign-in with email OTP (login page):**
-- Login page adds a tab/toggle: "Password" | "Email Code".
-- Email code mode: user enters email → taps "Send Code" → receives 6-digit OTP via email → enters code → authenticated.
-- Uses `supabase.auth.signInWithOtp({ email })` and `supabase.auth.verifyOtp({ email, token, type: 'email' })`.
-- Falls back gracefully if Supabase OTP is not enabled (shows error message).
-
-**b) Sign-up with magic link (signup page):**
-- Signup page adds a "Sign up with magic link" option below the password form.
-- User enters name + email → taps "Send Magic Link" → receives email with login link → clicks link → account created.
-- Uses `supabase.auth.signInWithOtp({ email, options: { data: { display_name }, emailRedirectTo: '/auth/callback' } })`.
-- Success screen shows "Check your email for a magic link!" message.
-
-**c) Invite flow magic link:**
-- Invite page auth step adds magic link signup as an option alongside password-based signup.
-- Lower friction path for invited users: just enter email → get link → click → join family.
-
----
-
-#### FB-12 · Family Member Management UI  *(High priority)*
-
-> Parents need to see who is in their family and invite new members — currently there is no UI for this in settings.
-
-**Requirements:**
-- Settings page gains a "Family Members" section (fetched from Supabase `family_members` table).
-- Shows current members: avatar + name + relationship label (e.g., "👩 Sarah — Mom").
-- Shows pending invites with expiry countdown and email.
-- "Invite Member" button opens inline form: email input + relationship picker (reuses the emoji grid from invite page).
-- Invite creation calls existing `POST /api/invite` endpoint.
-- Owner badge shown on the family owner's row.
-- Members can see other members but cannot remove them in v1 (owner-only action, deferred).
-
----
-
-#### FB-13 · Profile Avatars: Presets + Photo Upload  *(High priority)*
-
-> Replace emoji-only avatars with richer options: preset illustrated avatars and photo uploads with crop/compression.
-
-**Requirements:**
-
-**a) Preset avatars:**
-- SVG avatar images stored in `/public/avatars/presets/` (user will supply from Figma).
-- Placeholder set of 12 default presets included for scaffolding.
-- Avatar picker shows a grid of circular preset images alongside the existing emoji grid.
-
-**b) Photo upload with crop:**
-- Camera/gallery file picker → client-side circular crop (1:1 aspect ratio, `react-easy-crop`) → client-side compression (max 200KB, WebP where supported, via `browser-image-compression`) → upload to Supabase Storage `avatars` bucket → public URL stored as avatar value.
-- Crop UI: modal overlay with pinch/zoom support, "Save" / "Cancel" buttons.
-
-**c) Avatar data model:**
-- Avatar field supports three formats (backwards compatible):
-  - Emoji: `"🧒"` (single/double char, existing)
-  - Preset: `"preset:avatar-01"` (new)
-  - URL: `"https://..."` (uploaded photo, new)
-- `AvatarDisplay` component renders any format as a circular image.
-- `AvatarPicker` component provides tabbed UI: Emoji | Presets | Upload.
-
-**d) Applies to:**
-- Kid profiles (create + edit)
-- Family member profiles (invite configure step + settings)
-
-**Dependencies:**
-- `react-easy-crop` — client-side image cropping
-- `browser-image-compression` — client-side image compression
-- Supabase Storage bucket: `avatars` (public, authenticated upload)
-
----
-
-#### FB-14 · Animation & Sound Effects  *(Medium priority)*
-
-> Add sensory feedback to key actions — makes the app feel alive for kids and satisfying for parents.
-
-**Requirements:**
-
-**a) Sound effects (Web Audio API synthesis — zero external files):**
-- Earn stars: ascending major arpeggio chime (happy, bright)
-- Deduct stars: soft descending minor tone (firm but gentle)
-- Redeem reward: celebratory bell / cash register
-- Confirm button: subtle click
-- Sounds play alongside existing confetti on earn events.
-
-**b) Sound settings:**
-- `AppMeta` gains `soundEnabled: boolean` (default `true`).
-- Toggle in Settings page: "🔊 Sound Effects" on/off.
-- Respects device silent mode where detectable.
-
-**c) Enhanced animations:**
-- Star count bounce on value change (CSS scale keyframe).
-- Card entrance staggered slide-up animation on page load.
-- Button press scale feedback (`active:scale-95` already used; extend to more buttons).
-- Toast slide-in from top / slide-out transitions.
-- Bottom sheet slide-up entrance with spring easing.
-
----
-
-#### Priority Matrix (Round 6)
-
-| ID | Feature | Priority | Effort | Target |
-|----|---------|----------|--------|--------|
-| FB-11 | Auth: OTP + magic link | High | S | v0.3.0 |
-| FB-12 | Family member management UI | High | S | v0.3.0 |
-| FB-13 | Profile avatars + photo upload | High | M | v0.3.0 |
-| FB-14 | Animation & sound effects | Medium | M | v0.3.0 |
-
-#### Implementation Order
-
-| # | Feature | Scope |
-|---|---------|-------|
-| 1 | FB-11 | Login + signup + invite pages |
-| 2 | FB-12 | Settings page + Supabase queries |
-| 3 | FB-13 | New components + Supabase Storage + avatar migration |
-| 4 | FB-14 | lib/sounds.ts + CSS animations + settings toggle |
-
----
-
-### Round 7 — Emotional Engagement & Delight (Mar 2026)
-
-Building deeper emotional connection for kids (ages 4–8) through a virtual companion, richer animation feedback loops, and family avatar decoration effects.
-
----
-
-#### FB-15 · Virtual Companion (Plant or Animal)  *(High priority)*
-
-> A living creature on the kid dashboard that **grows** as the kid earns stars and **wilts / looks sad** when punishments happen. This gives kids an emotional anchor — they are not just collecting numbers, they are caring for something.
-
-**Concept:**
-- Each kid gets a virtual companion displayed prominently on their dashboard.
-- The companion has **mood states** driven by recent activity:
-  - **Happy / thriving:** Recent earn transactions → companion blooms, bounces, sparkles.
-  - **Sad / wilting:** Recent deduct transactions → companion droops, loses color, shows a tear.
-  - **Neutral / resting:** No recent activity → calm idle animation.
-- The companion **evolves** through growth stages as the kid accumulates lifetime stars:
-  - Stage 1 (0–50 stars): Seed / egg / baby
-  - Stage 2 (51–200 stars): Sprout / hatchling
-  - Stage 3 (201–500 stars): Young plant / juvenile
-  - Stage 4 (501–1000 stars): Blooming / adolescent
-  - Stage 5 (1001+ stars): Full bloom / adult with decorations
-- Growth is based on **lifetime earned stars** (not current balance), so redeeming rewards does not cause regression.
-
-**Companion types (parent chooses during kid setup or kid picks):**
-- 🌱 Plant line: seed → sprout → sapling → flowering tree → grand tree with fruit
-- 🐣 Animal line: egg → chick → young bird → colorful bird → phoenix-like bird with sparkles
-- More types can be added later (ocean creature, dragon, etc.)
-
-**Data model additions:**
-```
-Kid  { ..., companionType?: 'plant' | 'animal', companionStage?: number }
-```
-- `companionStage` is computed from lifetime earned stars but cached for performance.
-- Mood is computed client-side from the last 3 transactions (no new field needed).
-
-**UI placement:**
-- Kid dashboard: companion occupies a prominent card between the star balance and badges section.
-- Companion animates continuously (idle loop) with mood-specific variations.
-- Tapping the companion triggers a small interaction animation (bounce, hearts, etc.).
-
-**Animation requirements:**
-- Each growth stage has a distinct SVG/Lottie illustration.
-- Transitions between stages play a celebratory evolution animation.
-- Mood changes animate smoothly (e.g., plant wilting over 0.5s, not instant).
-
----
-
-#### FB-16 · Animation Feedback Loop Enhancement  *(High priority)*
-
-> Animation is the primary language for kids aged 4–8. Every meaningful action should have a visible, delightful reaction — not just a toast message.
-
-**Requirements:**
-
-**a) Earn stars — celebration cascade:**
-- Existing confetti + sound retained.
-- Add: star count does an exaggerated bounce-scale animation (1.0 → 1.4 → 1.0).
-- Add: companion reacts — happy bounce, sparkle particles around it.
-- Add: earned amount floats up from the action button as "+5 ⭐" with fade-out.
-- Duration: ~1.5s total cascade.
-
-**b) Deduct stars — gentle consequence feedback:**
-- Star count shrinks briefly (1.0 → 0.85 → 1.0) with a subtle red flash on the number.
-- Companion reacts — droops, single tear drop animation, color desaturation.
-- Deducted amount floats down as "−3 ⭐" in muted red with fade-out.
-- No confetti, no celebratory sound — the existing soft descending tone plays.
-- Duration: ~1.2s.
-
-**c) Redeem reward — achievement moment:**
-- Gift emoji burst (🎁) animation around the reward card.
-- Star count does a smooth count-down animation (numerically ticking from old to new value).
-- Companion does a proud/excited animation.
-- Celebratory bell sound plays.
-
-**d) Growth stage evolution — milestone moment:**
-- Full-screen overlay with particle effects.
-- Old stage fades/shrinks, new stage grows in with spring animation.
-- Congratulatory message: "Your [companion] evolved!" with sparkle text.
-- Sound: ascending fanfare (new sound, 2s).
-- This is the highest-impact animation in the app — should feel like a true achievement.
-
-**e) Badge earned:**
-- Badge icon flies from off-screen to the badge wall position.
-- Shimmer effect on the new badge for 3s.
-- Companion reacts with a happy animation.
-
-**Technical approach:**
-- CSS keyframe animations for simple transforms (bounce, scale, fade).
-- Framer Motion for orchestrated sequences (earn cascade, evolution overlay).
-- Lottie for companion illustrations (lightweight, vector-based, loopable).
-- All animations respect `prefers-reduced-motion` media query.
-
----
-
-#### FB-17 · Family Avatar Decoration Effects  *(Medium priority)*
-
-> Family member avatars (parent and kid) should feel expressive and customizable — decorations and effects make them personal and fun.
-
-**Requirements:**
-
-**a) Avatar frames / borders:**
-- Selectable decorative frames around avatars: crown, stars, hearts, flowers, lightning, rainbow ring.
-- Frames are SVG overlays rendered on top of the circular avatar.
-- Parents choose frames for kids during profile setup; kids can browse and request changes.
-- Frames can be earned as rewards (e.g., "unlock the crown frame for 100 ⭐").
-
-**b) Avatar status effects:**
-- Animated effects that play on the avatar based on state:
-  - Sparkle particles: when the kid recently earned stars (last 30 min).
-  - Glow ring: when the kid leveled up their companion recently.
-  - Celebration burst: on the home page when the kid's companion just evolved.
-- Effects are subtle and non-distracting — small particles, soft glow, no flashing.
-
-**c) Avatar mood indicator:**
-- Small emoji overlay on the avatar corner showing companion mood: 😊 (happy), 😢 (sad), 😴 (neutral/idle).
-- Synced with companion mood state from FB-15.
-
-**Data model additions:**
-```
-Kid  { ..., avatarFrame?: string }
-```
-- `avatarFrame` stores the selected frame ID (e.g., `"crown"`, `"stars"`, `"rainbow"`).
-- Status effects and mood indicators are computed client-side — no persistence needed.
-
-**Available frames (v1):**
-| ID | Visual | Unlock |
-|----|--------|--------|
-| `none` | No frame (default) | Free |
-| `stars` | Rotating star ring | Free |
-| `hearts` | Heart border | 50 ⭐ |
-| `crown` | Golden crown on top | 100 ⭐ |
-| `flowers` | Floral wreath | 75 ⭐ |
-| `rainbow` | Rainbow ring | 150 ⭐ |
-| `lightning` | Electric sparks | 200 ⭐ |
-
----
-
-#### Priority Matrix (Round 7)
-
-| ID | Feature | Priority | Effort | Target |
-|----|---------|----------|--------|--------|
-| FB-15 | Virtual companion | High | L | v0.4.0 |
-| FB-16 | Animation feedback loop | High | M | v0.4.0 |
-| FB-17 | Avatar decoration effects | Medium | M | v0.4.0 |
-
-#### Implementation Order
-
-| # | Feature | Scope |
-|---|---------|-------|
-| 1 | FB-15 | Data model + companion component + dashboard integration |
-| 2 | FB-16 | Animation system + earn/deduct/redeem/evolution cascades |
-| 3 | FB-17 | Avatar frames + status effects + mood indicator |
-
-#### Design Dependencies
-
-- Companion illustrations (plant stages × moods, animal stages × moods) — need SVG or Lottie assets.
-- Avatar frame SVGs — 7 decorative frame designs.
-- All visual assets to be designed in the `.pen` design file or sourced from Figma before implementation.
-
----
-
-### Round 9 — Account Setup & Auth (Mar 2026)
-
-Email + password authentication with OTP email verification and a connected family creation wizard.
-
----
-
-#### Auth Flow (implemented)
-
-```
-/signup              Email + password form (phone tab visible but disabled)
-  ↓ signUp()         Supabase creates account, sends confirmation email with OTP
-/signup/verify       User enters 6-digit code from email
-  ↓ verifyOtp()      Confirms email, signs user in
-/                    Role selection (→ /setup if no family data yet)
-/setup               Existing family creation wizard (unchanged)
-/parent              Parent dashboard
-```
-
-Login flow:
-```
-/login               Email + password → signInWithPassword() → /
-```
-
-Middleware enforces auth on all routes except `/login`, `/signup`, `/signup/verify`, `/auth/callback`.
-
----
-
-#### Supabase Email Template — Required Configuration
-
-For 6-digit OTP codes (instead of magic links), the "Confirm signup" email template in Supabase dashboard must be updated:
-
-**Auth > Email Templates > Confirm signup** — replace the default body with:
-
-```html
-<h2>Confirm your email</h2>
-<p>Your verification code for Kids Rewards:</p>
-<h1 style="letter-spacing: 0.3em; font-size: 2em;">{{ .Token }}</h1>
-<p>This code expires in 1 hour.</p>
-<p>Or <a href="{{ .ConfirmationURL }}">click here</a> to confirm automatically.</p>
-```
-
-The `{{ .Token }}` variable is the 6-digit OTP. The `{{ .ConfirmationURL }}` fallback link redirects to `/auth/callback` which exchanges the code for a session.
-
-**Auth > URL Configuration:**
-- Site URL: `https://kids.motivationlabs.ai`
-- Redirect URLs: add `https://kids.motivationlabs.ai/auth/callback`
-
----
-
-#### Pages Built
-
-| Route | Purpose |
-|-------|---------|
-| `/login` | Email + password sign-in. Error messages are user-friendly (not raw Supabase). Redirect param preserved so users land where they tried to go. |
-| `/signup` | Email + password account creation. Phone tab shown but disabled with "Soon" badge. Password must be 8+ chars; confirm field shows red border on mismatch. |
-| `/signup/verify` | 6-digit numeric OTP input. Large centered input with letter-spacing for readability. Resend code button. Both verify (`verifyOtp`) and resend (`auth.resend`) wired to Supabase. Magic-link fallback via `/auth/callback`. |
-| `/auth/callback` | Server-side route that exchanges Supabase `code` param for a session cookie, then redirects to `/`. |
-
----
-
-#### Design
-
-- Consistent with app palette: warm cream background (`bg-page`), amber brand colour, Nunito font, rounded-3xl card
-- Mobile-first (max-w-sm, full-screen layout)
-- OTP input: large text (3xl), letter-spacing 0.4em, numeric keyboard on mobile
-- All three pages captured in `tests/auth-screens/` (7 screenshots)
-
----
-
-### Deployment Decision — Mar 2026
-
-**Live production URL:** https://kids.motivationlabs.ai
-
-**Current live version:** Email + password auth with OTP verification (v1.5)
-
-**What is live:**
-- Email + password signup with OTP email verification (Round 9)
-- Family creation wizard after first login
-- Full star economy (earn / deduct / redeem)
-- Avatar system with 30 Figma preset avatars
-- Avatar frames (7 tiers, lifetime-star unlocks)
-- Animation & sound feedback
-- All parent management screens
-- Kid dashboards with badges and rewards
-- Data stored in localStorage (single device; multi-device sync planned for v2)
-
-**What is deferred:**
-- Google OAuth / social login
-- Multi-device sync (Supabase DB write-through)
-- Invite / family member management
-- Photo avatar upload
-
----
-
-### Round 8 — Supabase Backend Setup (Mar 2026)
-
-The Supabase project **"motivate your kids"** (`vkqzosxjsiyhjltzwpaw`, region: ap-southeast-1) is fully provisioned and schema-ready. The database is the authoritative backend for v2 (multi-device sync). The app currently runs entirely on localStorage (v1); this infrastructure is standing by for the v2 migration.
-
----
-
-#### Database Schema (live in Supabase)
-
-All tables have RLS enabled. Data is scoped to families via the `user_family_ids()` helper.
-
-| Table | Description |
-|-------|-------------|
-| `families` | One row per family — `id`, `name`, `created_at` |
-| `family_members` | Links `auth.users` to families — `user_id`, `family_id`, `relationship`, `is_owner`, `joined_at` |
-| `invites` | 24-hour invite tokens — `token` (unique), `family_id`, `email?`, `relationship`, `status`, `expires_at` |
-| `kids` | `id`, `family_id`, `name`, `avatar`, `color_accent`, `wishlist` (text[]), `avatar_frame`, `created_at` |
-| `categories` | `id`, `family_id`, `name`, `icon` |
-| `actions` | `id`, `family_id`, `name`, `description`, `category_id?`, `points_value`, `is_deduction`, `badge_id?`, `is_template`, `is_active` |
-| `badges` | `id`, `family_id`, `name`, `icon`, `description` |
-| `rewards` | `id`, `family_id`, `name`, `description`, `points_cost`, `is_active` |
-| `transactions` | `id`, `kid_id`, `type` (earn/redeem/deduct), `amount`, `action_id?`, `reward_id?`, `status`, `timestamp`, `note?`, `reason?` |
-| `kid_badges` | `(kid_id, badge_id)` composite PK + `awarded_at` |
-
-**Custom types (enums):**
-- `transaction_type`: `earn | redeem | deduct`
-- `transaction_status`: `approved | pending | denied`
-- `member_relationship`: `mother | father | grandma | grandpa | aunt | uncle | other`
-- `invite_status`: `pending | accepted | expired`
-
-**RLS policies (all tables):**
-- `families`: members can SELECT their family; owners can UPDATE; authenticated users can INSERT (create new family)
-- `family_members`: members can SELECT co-members; INSERT own membership; UPDATE own record
-- `invites`: anyone can SELECT by token (invite link); family members can INSERT and SELECT; UPDATE on accept
-- `kids / categories / actions / badges / rewards`: family members can ALL (CRUD)
-- `transactions`: scoped to kids in the user's families — family members can ALL
-- `kid_badges`: scoped to kids in the user's families — family members can ALL
-
-**Database functions:**
-- `user_family_ids()` — returns `uuid[]` of families the current user belongs to (used in all RLS policies)
-- `validate_invite(p_token text)` — validates token, checks expiry, returns invite data
-- `accept_invite(p_token text, p_user_id uuid, p_display_name text)` — SECURITY DEFINER; marks invite accepted and inserts `family_members` row
-
----
-
-#### Storage
-
-**Bucket:** `avatars` (public read)
-
-| Policy | Role | Operation |
-|--------|------|-----------|
-| Anyone can read avatars | public | SELECT |
-| Authenticated users can upload avatars | authenticated | INSERT |
-| Authenticated users can update own avatars | authenticated | UPDATE (owner = auth.uid()) |
-| Authenticated users can delete own avatars | authenticated | DELETE (owner = auth.uid()) |
-
----
-
-#### Auth Configuration (to complete before v2 launch)
-
-The following must be configured in the Supabase dashboard before wiring auth into the app:
-
-1. **Google OAuth:**
-   - Auth > Providers > Google → enable, paste Client ID + Secret from Google Cloud Console
-   - Google Cloud Console: add `https://vkqzosxjsiyhjltzwpaw.supabase.co/auth/v1/callback` as authorized redirect URI
-   - Supabase: Auth > URL Configuration → add `https://kids.motivationlabs.ai` to Site URL and Redirect URLs
-
-2. **Email (OTP / magic link):**
-   - Auth > Providers > Email → enable "Confirm email" and "Enable email OTP"
-   - Auth > Email Templates → customise with brand colours (optional)
-   - Set `RESEND_API_KEY` in Vercel env if using custom SMTP via Resend
-
-3. **Vercel environment variables required:**
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=https://vkqzosxjsiyhjltzwpaw.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from Supabase Settings > API>
-   RESEND_API_KEY=<Resend API key>
-   NEXT_PUBLIC_APP_URL=https://kids.motivationlabs.ai
-   ```
-
----
-
-#### v2 Migration Plan (localStorage → Supabase)
-
-When auth is ready to ship, the migration path is:
-
-1. **Re-add packages:** `@supabase/ssr`, `@supabase/supabase-js`, `resend`
-2. **Restore auth pages:** `app/login`, `app/signup`, `app/auth/callback` (from git history: commit `9e19014`)
-3. **Restore API routes:** `app/api/invite/*` (from git history)
-4. **Restore middleware:** auth enforcement (from git history: commit `9600797`)
-5. **Restore settings page** family member management section
-6. **Add sync layer:** new `lib/sync.ts` — on sign-in, check if Supabase family exists for user; if not, offer to import from localStorage; if yes, load from Supabase into context
-7. **Dual-write period:** write to both localStorage and Supabase simultaneously during migration to avoid data loss
-8. **Field mapping** (localStorage camelCase → Supabase snake_case):
-   | localStorage | Supabase |
-   |---|---|
-   | `colorAccent` | `color_accent` |
-   | `pointsValue` | `points_value` |
-   | `isDeduction` | `is_deduction` |
-   | `isTemplate` | `is_template` |
-   | `isActive` | `is_active` |
-   | `avatarFrame` | `avatar_frame` |
-   | `pointsCost` | `points_cost` |
-   | `familyId` | `family_id` |
-   | `kidId` | `kid_id` |
-   | `actionId` | `action_id` |
-   | `rewardId` | `reward_id` |
-   | `awardedAt` | `awarded_at` |
-   | `createdAt` | `created_at` |
-
----
-
-### Round 10 — Settings, Family Members & Action Memos (Mar 2026)
-
----
-
-#### FB-14 · Rename "More" Tab to "Settings"  *(Completed)*
-
-**Change:** Bottom nav tab renamed from "More" (☰) to "Settings" (⚙️). i18n updated for en/zh.
-
----
-
-#### FB-15 · Family Member Management  *(Completed)*
-
-> Parents need to see, add, and manage family members with defined roles and relationships to the kids.
-
-**Requirements:**
-- New route: `/parent/family` — accessible from Settings hub.
-- Add/edit/remove family members with: name, avatar (emoji or preset), role, and optional birthday.
-- **Role constraints:** Mother and Father are single-occupancy (max one each). Grandma, Grandpa, Aunt, Uncle, Nanny, and Other can have multiples.
-- **Invite link generation:** Create invite links scoped to a role. Links expire after 24 hours. Copy-to-clipboard support.
-- Pending invites displayed with expiry countdown and delete option.
-
-**Data model additions:**
-```
-FamilyMember   { id, familyId, name, avatar, role, birthday?, createdAt }
-FamilyInvite   { id, familyId, token, role, createdAt, expiresAt }
-FamilyRole     = 'mother' | 'father' | 'grandma' | 'grandpa' | 'aunt' | 'uncle' | 'nanny' | 'other'
-```
-
-**New route:** `/parent/family`
-
----
-
-#### FB-16 · Action Logging Memos — Photo & Voice  *(Completed)*
-
-> When logging an action, parents can attach a photo and/or a 10-second voice memo as evidence or context.
-
-**Requirements:**
-- Quick Log modal (Actions tab + Home page) gains a "Memo (optional)" section with:
-  - **Photo capture:** camera/gallery file picker → client-side resize (max 800px) + compress (WebP/JPEG) → stored as base64 data URL in localStorage.
-  - **Voice recording:** in-app microphone recording, max 10 seconds, auto-stops at limit. Stored as WebM base64 data URL. Playback/remove controls after recording.
-- Memos are stored on the `Transaction` entity (`photoUrl`, `voiceMemoUrl` fields).
-- Activity feed shows 📷 and 🎙 indicators on transactions that have attachments.
-- No external dependencies — uses native `MediaRecorder` and `Canvas` APIs.
-
-**Data model changes:**
-```
-Transaction += { photoUrl?: string, voiceMemoUrl?: string }
-```
-
-**Files changed:**
-- `types/index.ts` — added `FamilyMember`, `FamilyInvite`, `FamilyRole`, memo fields on `Transaction`, updated `AppStore`
-- `lib/store.ts` — updated `DEFAULT_STORE`
-- `context/FamilyContext.tsx` — added family member CRUD + invite methods, updated `logCompletion` signature
-- `components/ParentNav.tsx` — "More" → "Settings" with ⚙️ icon
-- `components/VoiceRecorder.tsx` — new voice recording component
-- `components/PhotoCapture.tsx` — new photo capture component
-- `app/parent/more/page.tsx` — renamed header, added Family Members menu item
-- `app/parent/family/page.tsx` — new family members management page
-- `app/parent/actions/page.tsx` — added memo UI to Quick Log modal
-- `app/parent/page.tsx` — added memo UI to home page quick action sheet, memo indicators in activity feed
-- `lib/i18n.ts` — added `nav.settings` key for en/zh
-
----
-
-### Round 11 — Family Ownership, Join Flow & Daily Chart (Mar 2026)
-
----
-
-#### FB-17 · Family Display Code & Identity  *(Completed)*
-
-Each family gets a unique, human-readable 6-character code (e.g. `SMT-4K2`) generated at creation time. This code is:
-- Displayed prominently in the Family Members page
-- Copyable to clipboard
-- Shown during setup after family creation
-- Used by new users to request joining an existing family
-
-**Data model changes:**
-```
-Family += { displayCode: string, ownerId: string }
-```
-
----
-
-#### FB-18 · Create vs Join Family Flow  *(Completed)*
-
-After signup, users without a family see a choice screen:
-1. **Create a new family** — name the family, become the owner/admin
-2. **Join an existing family** — enter a family code to send a join request
-
-Both paths require a profile setup step first (name, avatar, relationship role).
-
-**Join flow:**
-- User enters the family code → submits join request
-- Family owner sees the request in the Family Members page
-- Owner can approve (auto-creates member) or deny
-- Join request is stored locally as `JoinRequest` entity
-
-**Data model additions:**
-```
-JoinRequest { id, familyId, requesterName, requesterAvatar, requestedRole, birthday?, status, createdAt }
-JoinRequestStatus = 'pending' | 'approved' | 'denied'
-```
-
----
-
-#### FB-19 · Family Ownership & Admin Controls  *(Completed)*
-
-The first parent who creates the family is the **owner/admin**:
-- Owner badge displayed on their member card
-- Owner can: add/edit/remove members, change relationships, approve join requests, approve invites from non-owners
-- Owner can transfer ownership to another non-kid family member via a two-step confirmation dialog
-- Non-owners can create invite links, but they require owner approval before becoming active
-
-**Invite approval flow:**
-- Non-owner creates invite → status `pending_approval`
-- Owner creates invite → auto-approved
-- Owner sees pending invites in a separate section and can approve or delete
-
-**Data model changes:**
-```
-FamilyMember += { isOwner?: boolean }
-FamilyInvite += { status: 'pending_approval' | 'approved' | 'used', createdBy?: string }
-InviteStatus = 'pending_approval' | 'approved' | 'used'
-```
-
-**Ownership transfer:**
-- Owner selects a non-kid member → confirms twice → ownership moves
-- Old owner loses admin badge, new owner gains it
-- Family.ownerId updated atomically with member isOwner flags
-
----
-
-#### FB-20 · Daily Points Chart  *(Completed)*
-
-Bar chart on the parent home page showing last 7 days of star activity:
-- **Green bars**: stars earned (brighter green for today)
-- **Red bars**: stars deducted/redeemed (brighter red for today)
-- Summary row: total earned, total deducted, net change
-- Pure HTML/CSS implementation, no chart library
-- Responsive, auto-scales to max value
-
-**Component:** `DailyPointsChart.tsx`
-**Location:** Parent home page, between kid cards and activity feed
-
----
-
-#### Files Changed (Round 11)
-
-- `types/index.ts` — added `displayCode`, `ownerId` to Family; `isOwner` to FamilyMember; `InviteStatus`, `JoinRequest`, `JoinRequestStatus` types; `joinRequests` to AppStore
-- `lib/ids.ts` — added `generateFamilyCode()` for short readable codes
-- `lib/store.ts` — added `joinRequests: []` to DEFAULT_STORE
-- `context/FamilyContext.tsx` — updated `createFamily` with owner/code generation; added join request CRUD, invite approval, ownership transfer; new reducer cases
-- `app/setup/page.tsx` — redesigned: choice screen (create/join), profile setup, join-by-code flow, family code display
-- `app/parent/family/page.tsx` — added family code card, join request approval section, invite approval section, owner badge, transfer ownership, owner-only edit/remove guards
-- `components/DailyPointsChart.tsx` — new 7-day bar chart component
-- `app/parent/page.tsx` — added DailyPointsChart to home page
-
----
-
-### Round 12 — Settings Page Redesign (Mar 2026)
-
-Consolidate the scattered settings-related pages into a single, unified Settings experience. The current `/parent/more` hub links to 6 separate sub-pages (Kids, Family, Badges, History, Settings, Switch User). This redesign merges the key management features into a tabbed Settings page, simplifying navigation and reducing page jumps.
-
----
-
-#### Current State Analysis
-
-| Feature | Current Location | Problem |
-|---------|-----------------|---------|
-| Family member management | `/parent/family` (separate page) | Invite links don't encode relationship in URL; no "kick" affordance for removing members |
-| Account & avatar editing | `/parent/settings` (self only), `/parent/kids` (kids) | Scattered — parent edits self in one page, edits kids in another |
-| Badge management | `/parent/badges` (separate page) | Disconnected from settings hub; no issues, just fragmented |
-| Activity history | `/parent/history` (separate page) | Sorted by time but no filtering by transaction type |
-| Language, sound, categories | `/parent/settings` | Mixed with account editing in a long scrollable page |
-
----
-
-#### FB-21 · Settings Page Redesign  *(High priority)*
-
-**Goal:** Replace the current `/parent/more` hub + `/parent/settings` page with a single `/parent/settings` page that uses a tab/section layout to house all management features.
-
-**Page layout:**
-
-```
-┌─────────────────────────────────┐
-│  Settings                       │
-│  [Family Name] · Family ID      │
-├─────────────────────────────────┤
-│  [Members] [Profiles] [Badges] [History] │  ← horizontal scrollable tab bar
-├─────────────────────────────────┤
-│                                 │
-│  (active tab content)           │
-│                                 │
-├─────────────────────────────────┤
-│  Sign Out                       │
-│  Language · Sound · Danger Zone  │  ← always visible footer section
-└─────────────────────────────────┘
-```
-
----
-
-##### Tab 1: Members (Family Member Management)
-
-Consolidates current `/parent/family` page functionality with enhancements.
-
-**Features:**
-- **Member list:** Show all family members with avatar, name, role, owner badge. Each row has a "..." menu with Edit / Remove (owner only).
-- **Remove member ("kick"):** Owner can remove any non-owner member with a confirmation dialog. Removes from `familyMembers` array.
-- **Invite by link:** Create invitation links that encode the family UID and pre-selected relationship in the URL path: `{domain}/invite/{family-uid}/{relationship}` (e.g., `kids.motivationlabs.ai/invite/SMT-4K2/grandma`). The invitee opens this link, signs up, and joins with the pre-filled role.
-- **Pending join requests:** Same approval/deny UI as current `/parent/family`.
-- **Pending invite approvals:** Same as current.
-- **Ownership transfer:** Same as current — button at bottom of member list.
-
-**URL-encoded invite link format:**
-```
-https://{domain}/invite/{family-display-code}/{relationship}
-```
-- `relationship` is one of: `mother`, `father`, `grandma`, `grandpa`, `aunt`, `uncle`, `nanny`, `other`
-- When invitee opens the link, the role is pre-selected and shown as read-only (or editable if owner prefers)
-- The link also stores a `FamilyInvite` record with the role for server-side validation
-
----
-
-##### Tab 2: Profiles (Account & Avatar Settings)
-
-Consolidates self-account editing + kid profile management into one place.
-
-**Features:**
-- **My profile card:** Avatar, name, role, gender, birthday — tap "Edit" to open the existing account edit modal (currently in `/parent/settings`).
-- **Kid profiles list:** All kids shown as cards with avatar, name, age (computed from birthday), hobbies. Each has an "Edit" button.
-- **Kid profile editing (parent can edit):**
-  - Avatar (emoji, preset, or photo upload — same `AvatarPicker`)
-  - Name
-  - Birthday → auto-compute and display age
-  - Gender
-  - Hobbies (new field — free-form text or tag chips, e.g., "Drawing, Soccer, Reading")
-  - Avatar frame selection
-- **Add kid:** "+ Add Kid" button at bottom, opens the kid creation form.
-
-**Data model changes:**
-```
-Kid += { hobbies?: string[] }
-```
-
----
-
-##### Tab 3: Badges (Badge Management)
-
-Moves current `/parent/badges` page content into the settings tab.
-
-**Features:**
-- Grid display of all badges (emoji + name)
-- Create new badge (emoji picker + name + description)
-- Edit / delete existing badges
-- Award badge to a kid (existing functionality)
-- No changes to existing badge logic — this is a relocation, not a redesign
-
----
-
-##### Tab 4: History (Activity History)
-
-Moves current `/parent/history` page content into the settings tab, with filtering added.
-
-**Features:**
-- **Timeline view:** All transactions sorted by time (newest first), grouped by date — same as current.
-- **Type filter bar:** Horizontal chip row at the top: `All` | `Earned` | `Deducted` | `Redeemed`. Tapping a chip filters the list to that `Transaction.type`. Active chip is highlighted.
-- **Kid filter (optional):** If multiple kids, show a secondary chip row for per-kid filtering.
-- **Memo indicators:** Existing 📷 / 🎙 icons for transactions with photo/voice memos.
-- **Transaction details:** Tapping a transaction expands it inline to show: full reason, memo playback, timestamp.
-
----
-
-##### Footer Section (Always Visible Below Tabs)
-
-Persists below all tab content — not part of any tab:
-
-- **Sign Out button** — calls `supabase.auth.signOut()`, redirects to `/login`
-- **Language toggle** — EN / 中文 (existing)
-- **Sound toggle** — on/off (existing)
-- **Danger Zone** — collapsible section with data reset (existing)
-
----
-
-#### Navigation Changes
-
-**Bottom nav:** The Settings tab (`/parent/more`) now points directly to `/parent/settings`.
-
-**Routes to deprecate:**
-- `/parent/more` → redirect to `/parent/settings`
-- `/parent/family` → content moves to Members tab
-- `/parent/badges` → content moves to Badges tab
-- `/parent/history` → content moves to History tab
-
-**Routes to add:**
-- `/invite/[familyCode]/[relationship]` — public invite acceptance page
-
-**ParentNav update:**
-```
-Settings tab: href changes from '/parent/more' to '/parent/settings'
-```
-
----
-
-#### Priority Matrix (Round 12)
-
-| ID | Feature | Priority | Effort | Target |
-|----|---------|----------|--------|--------|
-| FB-21a | Settings tab layout + Members tab | High | M | v1.6 |
-| FB-21b | Profiles tab (self + kid editing with hobbies) | High | M | v1.6 |
-| FB-21c | Badges tab (relocate) | High | S | v1.6 |
-| FB-21d | History tab (relocate + type filter) | High | S | v1.6 |
-| FB-21e | URL-encoded invite links | High | M | v1.6 |
-| FB-21f | Navigation cleanup (deprecate old routes) | Medium | S | v1.6 |
-
-#### Implementation Order
-
-| # | Feature | Scope |
-|---|---------|-------|
-| 1 | FB-21a | New `/parent/settings` with tab layout, Members tab content |
-| 2 | FB-21b | Profiles tab — merge account edit + kid profiles + add hobbies field |
-| 3 | FB-21c | Badges tab — move badge management into tab |
-| 4 | FB-21d | History tab — move history + add type/kid filters |
-| 5 | FB-21e | `/invite/[familyCode]/[relationship]` route + updated invite link generation |
-| 6 | FB-21f | Update ParentNav, add redirects for old routes, clean up |
-
----
-
-## Build Queue
-
-### 🔜 Next Up
-
-- [x] **FB-21a: Settings tab layout + Members tab** — Create new tabbed Settings page at `/parent/settings`. Members tab: member list with remove, URL-encoded invite link creation, pending requests.
-  - **User:** Parents (family owner primarily)
-  - **Acceptance Criteria:**
-    - Settings page renders 4 tabs: Members, Profiles, Badges, History
-    - Members tab shows all family members with avatar/name/role
-    - Owner can remove (kick) non-owner members with confirmation
-    - Invite links use format `{domain}/invite/{code}/{relationship}`
-    - Pending join requests and invite approvals shown
-    - Footer section with sign out, language, sound, danger zone always visible
-  - **Technical Notes:** Rewrite `app/parent/settings/page.tsx`. Pull logic from `app/parent/family/page.tsx`.
-  - **Tests Required:** Tab switching, member removal, invite link generation with correct URL format
-
-- [x] **FB-21b: Profiles tab** — Self-profile editing + kid profile management with new hobbies field
-  - **User:** Parents
-  - **Acceptance Criteria:**
-    - Parent can edit own profile (avatar, role, gender, birthday)
-    - Parent can view and edit any kid's profile
-    - Kid profile includes: avatar, name, birthday (with computed age display), gender, hobbies (tag chips), avatar frame
-    - Add new kid from this tab
-  - **Technical Notes:** Add `hobbies?: string[]` to Kid type. Merge account edit modal from current settings page.
-  - **Tests Required:** Kid profile editing, hobbies add/remove, age computation from birthday
-
-- [x] **FB-21c: Badges tab** — Relocate badge management into Settings
-  - **User:** Parents
-  - **Acceptance Criteria:**
-    - Same functionality as current `/parent/badges` page
-    - Create, edit, delete, award badges
-  - **Technical Notes:** Move content from `app/parent/badges/page.tsx` into the Badges tab component.
-  - **Tests Required:** Badge CRUD within new tab context
-
-- [x] **FB-21d: History tab with filters** — Relocate history with type and kid filtering
-  - **User:** Parents
-  - **Acceptance Criteria:**
-    - Transaction list sorted by time (newest first)
-    - Filter chips: All / Earned / Deducted / Redeemed
-    - Optional kid filter when multiple kids exist
-    - Memo indicators (📷 🎙) preserved
-  - **Technical Notes:** Move content from `app/parent/history/page.tsx`. Add filter state.
-  - **Tests Required:** Type filtering, kid filtering, correct transaction count per filter
-
-- [x] **FB-21e: URL-encoded invite links** — New invite link format and acceptance page
-  - **User:** Invited family members
-  - **Acceptance Criteria:**
-    - Invite links follow `{domain}/invite/{familyCode}/{relationship}` format
-    - Opening link pre-fills relationship role and optional invitee name
-    - Invitee fills in name/avatar and clicks "Join" to become a family member
-    - Error shown if invite is expired, used, or not found on this device
-  - **Technical Notes:** New route at `app/invite/[familyCode]/[relationship]/page.tsx`. Public route (no auth required). Same-device only in localStorage mode; cross-device requires Supabase DB invite storage (v2). Updated `buildInviteUrl` in Settings to use path format.
-  - **Limitation (v1):** Invite links only work when opened on the same device as the family owner (localStorage constraint). Cross-device support will be added when invites are stored in Supabase (v2).
-
-- [x] **FB-21f: Navigation cleanup** — Update ParentNav, redirect old routes (partial: nav + /parent/more redirect done; /parent/family, /parent/badges, /parent/history still serve original pages)
-  - **User:** All parents
-  - **Acceptance Criteria:**
-    - Bottom nav Settings tab points to `/parent/settings`
-    - `/parent/more` redirects to `/parent/settings`
-    - `/parent/family`, `/parent/badges`, `/parent/history` redirect to `/parent/settings` with correct tab
-  - **Technical Notes:** Update `ParentNav.tsx`, add redirect pages.
-  - **Tests Required:** Navigation links correct, redirects work
-
-- [ ] **FB-26: Fix invite flow — auth-gated join + member↔user linking** — Invited users end up creating a new family instead of joining the existing one
-  - **User:** Invited family members (e.g. spouse clicking invite link)
-  - **Bug:** Invite accept is unauthenticated; member record created without auth link; after signup, `fetchFamilyData` can't find the family → user sees setup page → creates new family
-  - **Root Causes:**
-    1. `family_members` table has no `user_id` column — members can't be linked to auth accounts
-    2. Invite page completes join without requiring login — no auth user to link
-    3. `fetchFamilyData` only queries `families.user_id` (owner), never `family_members`
-  - **Solution (4 parts):**
-    1. **DB migration:** Add `user_id UUID REFERENCES auth.users(id)` to `family_members`; backfill owner's `user_id` from `families.user_id`; add index on `family_members(user_id)`
-    2. **Invite page flow change:** Show invite details publicly (validate token) → clicking "Join" checks auth → if not logged in, redirect to `/signup?redirect=/invite/{token}` → after auth, redirect back → now authenticated, complete the join with `auth.uid()` linked to the new member record
-    3. **`fetchFamilyData` rewrite:** Query `family_members WHERE user_id = auth.uid()` first to get `family_id`, then load the family and all child data by that `family_id` (instead of `families.user_id`)
-    4. **`accept_invite_by_token` RPC update:** Require auth; accept `p_user_id UUID` parameter; store it in `family_members.user_id`; reject if user already belongs to a family
-  - **Acceptance Criteria:**
-    - Invited user clicks link → sees family name + role → clicks Join → redirected to signup/login → returns to invite → joins the EXISTING family
-    - After join, `/parent` loads the correct family data
-    - Owner's existing session continues to work (backfilled `user_id`)
-    - Duplicate join attempts show "already a member" error
-  - **Technical Notes:**
-    - Files: `supabase/migrations/003_member_user_id.sql`, `lib/supabase/database.ts`, `app/invite/[...segments]/page.tsx`, `context/FamilyContext.tsx`, `middleware.ts` (add `/invite` redirect support), `app/signup/page.tsx` + `app/login/page.tsx` (handle `?redirect=`)
-    - Must also clean up wife's orphan family V5Z-ESH and link her auth user to the "fei" member in MJL-PU3
-  - **Tests Required:** Full invite→signup→join flow, existing user invite flow, duplicate join rejection, fetchFamilyData for owner vs member
-
-- [ ] **FB-27: Home activity feed — clickable records + inline audio play** — Make activity records on the home dashboard tappable to view transaction details (photos, audio), and add an inline play button for voice memos
-  - **User:** Parents
-  - **Acceptance Criteria:**
-    - Each transaction row in the main activity feed links to `/parent/history/[id]` detail page
-    - Each transaction row in the per-kid bottom sheet links to the same detail page
-    - Transactions with voice memos show a small inline play/pause button
-    - Tapping the play button plays audio without navigating away
-    - Tapping anywhere else on the row navigates to the detail page
-    - Photo (📷) and voice (🎤) indicators remain visible
-  - **Technical Notes:** Wrap row content in `<Link>` to detail page. Add inline `<button>` for audio play that calls `e.preventDefault()` + `e.stopPropagation()` to prevent navigation. Reuse existing `/parent/history/[id]/page.tsx` detail page.
-  - **Tests Required:** Row click navigates to detail, play button plays audio without navigating, rows without audio have no play button
-
-- [ ] **FB-22: Remove member — in-app confirmation** — Replace `window.confirm()` with a proper bottom-sheet confirmation modal
-  - **User:** Family owner
-  - **Acceptance Criteria:**
-    - Clicking "Remove" on a member opens a confirmation sheet (not browser dialog)
-    - Sheet shows member name + avatar and a warning message
-    - Two buttons: "Remove [Name]" (destructive, red) and "Cancel"
-    - Only visible to family owner; owner cannot remove themselves
-  - **Technical Notes:** Add `memberToRemove: FamilyMember | null` state to `MembersTab`. Replace `handleRemove` call with state setter. Add confirmation modal JSX.
-  - **Tests Required:** Confirmation shown before removal, cancel works, non-owner cannot see remove button
-
-- [ ] **FB-23: Standalone sign-up → family choice** — After sign-up, users without a family see Create vs Join choice (already implemented in `/setup` page); document and verify the full flow
-  - **User:** New users
-  - **Acceptance Criteria:**
-    - Sign up → OTP verification → `/setup` choice screen (already works)
-    - "Create new family" leads to family name → kid → reward setup
-    - "Join existing family" leads to code entry → join request → owner approves
-    - Both paths fully functional end-to-end
-  - **Technical Notes:** `/setup/page.tsx` already implements this. Verify the join-by-code path correctly creates a `JoinRequest` visible to the owner in Settings > Members.
-  - **Tests Required:** Full sign-up → create flow, full sign-up → join flow
-
----
-
-### Round 13 — Family Membership Flows (Mar 2026)
-
-**Motivation:** Clarify and implement the three distinct ways to join or manage a family:
-1. Family owner removes a member (with proper UX confirmation)
-2. New users join via an invite link created by the owner
-3. New users sign up independently and join later via family code
-
----
-
-#### FB-22 · Remove Member — In-app Confirmation
-
-**Problem:** The current remove-member action uses `window.confirm()` — a browser-native dialog that breaks the app's design system and behaves inconsistently across mobile browsers.
-
-**Requirements:**
-- Add `memberToRemove: FamilyMember | null` state to the Members tab
-- Clicking "Remove" sets `memberToRemove` instead of calling `window.confirm()`
-- A bottom-sheet modal appears with: member avatar + name, warning text, red "Remove" button, "Cancel" button
-- Only the family owner sees the Remove button; the owner cannot remove themselves
-- After removal, `memberToRemove` is cleared and the sheet closes
-
----
-
-#### FB-23 · Invite Page — `/invite/[familyCode]/[relationship]`
-
-**Requirements:**
-- Public route (no Supabase auth required to view)
-- URL format: `{domain}/invite/{familyCode}/{role}?name={pre-filled name}`
-- Page reads family from localStorage by matching `familyCode` against `store.family.displayCode` or `store.family.uid`
-- Finds the first non-expired `approved` invite for the given role
-- Shows: family name, role badge, name input (pre-filled from `?name=`), avatar picker
-- "Join Family" button → calls `addFamilyMember()` → redirects to `/parent`
-- Error states: family not found on this device, no active invite for this role, invite expired
-
-**Limitation (localStorage v1):** The invite link only works on the same device as the family owner because invite tokens are stored in localStorage. Cross-device support requires Supabase invite storage (v2 — `validate_invite()` and `accept_invite()` functions are already provisioned in the database).
-
-**UX for cross-device attempts:** If the family is not found in localStorage, show a friendly message explaining the limitation and offering to sign up independently instead.
-
----
-
-### Round 14 — Custom Avatars & Confirmation Dialogs (Mar 2026)
-
----
-
-#### FB-24 · Custom Kid Avatars — Animal Presets
-
-**Problem:** The existing avatar options are limited to 20 emoji avatars and 30 Figma-designed presets. Neither set has playful, kid-friendly animal illustrations. The project already has 36 high-quality animal PNG avatars in `app/assets/kid-avatars/` that are not exposed to users.
-
-**Solution:**
-- Move 36 animal avatar PNGs from `app/assets/kid-avatars/` to `public/avatars/kids/` for web serving
-- Extend `AvatarType` to include `'kid'` alongside `'emoji' | 'preset' | 'url'`
-- New avatar prefix: `kid:axolotl`, `kid:bear`, etc. (same pattern as `preset:avatar-01`)
-- Add `KID_AVATARS` constant (36 entries) and `kidAvatarSrc(name)` function to `lib/avatars.ts`
-- `AvatarPicker` gains a third tab: **🐾 Animals** (default tab) alongside Emoji and Presets
-- `AvatarDisplay` updated to render `kid:` prefix avatars via `kidAvatarSrc()`
-
-**Available animals (36):** axolotl, bat, bear, bee, bluebird, bunny, cat, chick, chicken, cow, dinosaur, dog, duck, elephant, fox, frog, giraffe, goldfish, hamster, hedgehog, jellyfish, kitten, koala, octopus, otter, panda, penguin, pig, seal, sheep, sloth, snail, sprout-snail, squirrel, toad, turtle
-
----
-
-#### FB-25 · Comprehensive Confirmation Dialogs
-
-**Problem:** Multiple destructive actions across the app use `window.confirm()` or `window.alert()` or have no confirmation at all. These native browser dialogs break the app's design system, behave inconsistently on mobile, and provide a jarring UX.
-
-**Solution — replace every native dialog with in-app bottom-sheet modals:**
-
-| Action | Before | After |
-|--------|--------|-------|
-| Remove family member | `window.confirm()` | ✅ Already fixed (FB-22) |
-| Remove kid | `window.confirm()` | Bottom sheet: kid avatar + name + star balance, warning about profile removal |
-| Remove category | `window.confirm()` + `window.alert()` for in-use | Bottom sheet confirmation; in-use error shown as toast notification |
-| Sign out | No confirmation | Bottom sheet: "Sign out?" with reassurance that local data persists |
-| Data reset | Simple two-button flow | **Typed confirmation**: user must type `DELETE` to enable the destructive button |
-| Birthday edit once-per-year | `window.alert()` | Toast notification (auto-dismiss after 4s) |
-
-**Design principles:**
-- All confirmations use the consistent bottom-sheet modal pattern (rounded-t-3xl, bg-black/40 overlay)
-- Destructive buttons are red (`bg-red-500`) with explicit action text ("Remove [Name]", not "OK")
-- Account deletion and data reset require **typed confirmation** (`DELETE`) to prevent accidental triggers
-- Non-blocking errors (birthday rate limit, category in-use) shown as toast notifications that auto-dismiss
-- Cancel option is always available and easy to reach
+Auth requirements:
+
+- Adults authenticate with a real account before creating or joining a family.
+- Kids may use parent-approved kid sessions or family-scoped kid mode.
+- Invite links must require adult authentication before granting family access.
+- OAuth providers must map back to the same family membership model as password
+  and OTP accounts.
+
+### Agent And Developer Interfaces
+
+- MCP server support for structured agent access.
+- CLI support for local and remote operations.
+- Supported agent/tool ecosystems:
+  - OpenClaw
+  - Hermes
+  - Codex
+  - Claude Code
+  - OpenCode
+
+## 7. Core Product Features
+
+### 7.1 Family Management
+
+Families can invite and manage trusted adults.
+
+Required capabilities:
+
+- Create a family.
+- Invite parents, grandparents, uncles, aunts, nannies, and other caregivers.
+- Assign roles and permissions.
+- Transfer family ownership.
+- Remove or deactivate members.
+- Show member profile, avatar, relationship, and activity.
+- Parent/admin approval for sensitive changes.
+
+### 7.2 Kid Profiles
+
+Each kid has a full profile.
+
+Required fields:
+
+- name
+- avatar
+- birthday
+- gender or prefer not to say
+- hobbies and interests
+- favorite rewards
+- avatar frame or island theme
+- short voice self-intro, max 10 seconds
+- optional parent notes
+
+Profile rules:
+
+- Kid profile visibility is controlled by family admins.
+- Voice intro must be stored securely in Supabase Storage.
+- Parents can edit all kid profile fields.
+- Kids may suggest profile changes, but adults approve them.
+
+### 7.3 Tasks And Check-Ins
+
+Tasks represent actions worth tracking, rewarding, or sharing.
+
+Task types:
+
+- family routine task
+- learning task
+- chore task
+- creativity task
+- health task
+- behavior task
+- social group challenge
+- custom task
+
+Check-in media:
+
+- text memo
+- voice memo
+- video memo
+- optional image/photo attachment
+
+Rules:
+
+- Adults can create and assign tasks.
+- Kids can check in only on tasks they are allowed to see.
+- Some tasks require adult approval before points are awarded.
+- Every check-in creates an auditable activity record.
+- Media attachments are stored in Supabase Storage.
+
+### 7.4 Stars, Streaks, Badges, And Rewards
+
+The motivation loop uses multiple progress signals.
+
+Required capabilities:
+
+- Award stars for task completion.
+- Deduct stars only when family settings allow it.
+- Track streaks for repeated check-ins.
+- Award badges manually or through task rules.
+- Let kids browse rewards.
+- Let kids request rewards.
+- Let kids and adults maintain wishlists.
+- Require adult approval before rewards spend stars.
+- Compute balances from transaction history, not mutable counters.
+
+Wishlist and reward catalog requirements:
+
+- A wishlist item can be a custom card created inside the app.
+- A wishlist item can include a Taobao product link.
+- A wishlist item can include another ecommerce product link or SKU.
+- Adults can attach or upload a custom photo for any wishlist/reward card.
+- Wishlist cards support title, description, star cost, source URL, platform,
+  SKU/product ID, photo, and notes.
+- Kids can suggest wishlist items, but adults approve before the item becomes
+  visible as an active reward.
+- Ecommerce links are references only; the app does not purchase or fulfill
+  products in the first rebuild.
+
+Award-giving animation requirements:
+
+- Awarding stars should trigger a clear, delightful visual effect.
+- Badge awards should feel more special than routine star awards.
+- Reward approvals should produce a celebratory redemption moment.
+- Group ranking movement should animate clearly without feeling stressful.
+- Streak milestones should use island-map or path-progress animation.
+- Effects should be playful, performant, and safe for repeated daily use.
+- Motion must respect reduced-motion preferences.
+
+Animation reference:
+
+- GSAP community and examples: https://gsap.com/community/
+
+### 7.5 Social Interest Groups
+
+Some tasks can become group challenges. Kids can join approved groups with other
+kids around shared interests.
+
+Example groups:
+
+- reading club
+- drawing challenge
+- piano practice group
+- sports practice group
+- language learning group
+- kindness challenge
+
+Required capabilities:
+
+- Adults create or approve social groups.
+- Kids join groups only with family permission.
+- Group tasks support check-ins.
+- Kids can share streak progress in the group.
+- Groups can show rankings and scoring.
+- Rankings should be encouraging, not shaming.
+- Parents can remove a kid from any group.
+
+Safety requirements:
+
+- No public group discovery for kids without adult approval.
+- No open direct messaging in the first rebuild.
+- Group feeds show approved check-in content only.
+- Adults can report, hide, or remove inappropriate media.
+- Default group visibility is family-only unless explicitly shared.
+
+### 7.6 Ranking And Scoring
+
+Groups may include rankings for motivation.
+
+Scoring inputs:
+
+- check-in completion
+- streak length
+- stars earned
+- badge progress
+- task difficulty
+- consistency over time
+
+Rules:
+
+- Rankings must be scoped to a group.
+- Ranking views should emphasize progress and encouragement.
+- The app should support weekly, monthly, and all-time score windows.
+- Family admins can disable ranking for their kids.
+
+### 7.7 Multimedia Activity History
+
+Families need a clear history of what happened.
+
+Required activity types:
+
+- task check-in
+- star award
+- star deduction
+- reward request
+- reward approval
+- badge award
+- group join
+- group ranking update
+- profile update
+
+Activity records may include:
+
+- text memo
+- voice memo
+- video memo
+- image attachment
+- adult approval status
+- related task, reward, group, or kid
+
+### 7.8 MCP And CLI Support
+
+Motivate Kids should expose structured interfaces for agent-assisted workflows.
+
+MCP capabilities:
+
+- inspect family-safe product data with permission checks
+- list tasks, rewards, badges, and groups
+- create draft tasks or rewards for parent approval
+- summarize kid progress for parents
+- inspect failed workflows and logs
+- support coding-agent development workflows
+
+CLI capabilities:
+
+- authenticate as an admin or developer
+- inspect app health
+- run migrations
+- seed demo data
+- export family-safe reports
+- manage MCP server configuration
+- trigger test walkthroughs
+
+Supported tool integrations:
+
+- OpenClaw
+- Hermes
+- Codex
+- Claude Code
+- OpenCode
+
+## 8. Data Model
+
+Core tables:
+
+- families
+- family_members
+- kids
+- kid_profiles
+- tasks
+- task_assignments
+- check_ins
+- media_assets
+- categories
+- rewards
+- reward_requests
+- wishlist_items
+- badges
+- kid_badges
+- star_transactions
+- social_groups
+- group_memberships
+- group_tasks
+- group_scores
+- group_rankings
+- approvals
+- app_settings
+- audit_events
+- mcp_clients
+- cli_tokens
+
+Important invariants:
+
+- Every family-owned record has `family_id`.
+- Every kid-owned record has `kid_id`.
+- Every social group membership requires adult permission.
+- Every media asset has owner, scope, and moderation status.
+- Star balances are computed from approved star transactions.
+- Reward approval is idempotent.
+- Ranking is group-scoped.
+- MCP and CLI access must be permissioned and auditable.
+
+## 9. Permissions
+
+Permission model:
+
+- Family admin: full family management.
+- Trusted adult: can log tasks, review progress, and approve limited items.
+- Kid: can view own dashboard, check in, join approved groups, and request rewards.
+- Agent/CLI: can only perform actions granted by an authenticated admin or
+  developer permission.
+
+Sensitive actions requiring approval:
+
+- joining a social group
+- sharing check-in media outside the family
+- approving reward redemption
+- changing kid profile voice intro
+- inviting a new adult
+- enabling rankings for a kid
+- granting MCP or CLI access
+
+## 10. Release Criteria
+
+The rebuild MVP is ready when:
+
+- A family can sign up and create profiles for at least two kids.
+- Parents can invite grandparents and parent siblings.
+- Each kid can have an avatar and 10-second voice self-intro.
+- Adults can create tasks and rewards.
+- Kids can submit text, voice, and video check-ins.
+- Adults can approve check-ins and rewards.
+- Stars, streaks, badges, and rewards work end to end.
+- Kids can join an approved interest group.
+- Group streak sharing and ranking work safely.
+- Supabase Auth, Postgres, Storage, and Realtime are wired.
+- MCP and CLI interfaces exist for at least read-only product inspection.
+- The UI follows the Animal Island visual theme.
+- The WAP/mobile web app works well on Android and iOS browsers starting at
+  375px width.
+- The web/PWA surface is installable and usable before packaged apps ship.
+
+## 11. Open Questions
+
+1. Should social groups be limited to families we invite, or can trusted public
+   groups exist later?
+2. Should video check-ins have a max length in MVP, such as 15 or 30 seconds?
+3. Should rankings use stars, streaks, task difficulty, or a blended score?
+4. Should kids be able to react to each other's check-ins with stickers?
+5. Which MCP actions are safe for write access in the first release?
+6. Should the CLI be developer-only or available to family admins too?
